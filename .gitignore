@@ -5,3 +5,6 @@ dist/
 examples/
 src/
 tests/
+main.py
+pyproject.toml
+setup.py
