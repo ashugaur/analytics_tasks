@@ -30,16 +30,24 @@ theme:
         - navigation.tracking
         - navigation.indexes
         - content.code.annotate
-
+    icon:
+        logo: material/layers-outline
 markdown_extensions:
     - attr_list
     - admonition
+    - pymdownx.details
     - abbr
     - footnotes
     - tables
     - pymdownx.tabbed:
         alternate_style: true
-
+    - pymdownx.highlight:
+        anchor_linenums: true
+        line_spans: __span
+        pygments_lang_class: true
+    - pymdownx.inlinehilite
+    - pymdownx.snippets
+    - pymdownx.superfences
 plugins:
     - search
     - offline:

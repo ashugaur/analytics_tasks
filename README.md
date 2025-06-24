@@ -2,6 +2,6 @@
 
 ## About
 
-Integrated `file search`, `visual library` and `automate office` [guide](https://ashugaur.github.io/analytics_tasks/).
+Automation that saves time doing file search and building presentations, [guide](https://ashugaur.github.io/analytics_tasks/).
 
 work in progress...
