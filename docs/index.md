@@ -7,21 +7,11 @@ hide:
 ---
 
 
-# Analytics Tasks Guide
-
-## About
-
-The project includes 3 main modules.
-
-- `fs`: File search to index file text in a flexible way.
-- `vl`: Visual library as a reference point for charts and graphs.
-- `ao`: Automate office to prepares powerpoint presentations using excel .vba, R and python.
+# Analytics tasks guide
 
 
-## Objective(s)
+`Visual library [vl]`: Visualisation reference.
 
-1. Text mining.
-2. Build PowerPoint presentaitons at scale.
-3. Build visualizations with least time and effort.
+`Automate office [ao]`: Create powerpoint slides using code.
 
-
+`File search [fs]`: Create flexible document corpus.

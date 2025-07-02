@@ -32,9 +32,18 @@ theme:
         - content.code.annotate
     icon:
         logo: material/layers-outline
+
 markdown_extensions:
     - attr_list
     - admonition
+    - pymdownx.highlight:
+        pygments_lang_class: true
+        # auto_title: true
+        linenums: true
+        linenums_style: pymdownx-inline
+        anchor_linenums: true
+        line_spans: __span
+        pygments_lang_class: true
     - pymdownx.details
     - abbr
     - footnotes
@@ -48,6 +57,27 @@ markdown_extensions:
     - pymdownx.inlinehilite
     - pymdownx.snippets
     - pymdownx.superfences
+    - def_list
+    - pymdownx.caret
+    - pymdownx.mark
+    - pymdownx.tilde
+    - pymdownx.critic
+    - pymdownx.tasklist:
+        custom_checkbox: true
+    - pymdownx.tabbed:
+        alternate_style: true
+    - toc:
+        title: Table of contents
+        permalink: true #enable anchor
+        # permalink: '#' #change anchor
+        permalink_title: Anchor link to this section for reference
+        toc_depth: 5
+        baselevel: 1
+    - pymdownx.superfences:
+        custom_fences:
+          - name: mermaid
+            class: mermaid
+            format: !!python/name:pymdownx.superfences.fence_code_format
 plugins:
     - search
     - offline:

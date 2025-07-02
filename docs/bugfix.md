@@ -1,4 +1,15 @@
-## Bugfix
+---
+title: Bugfix
+hide:
+    - navigation
+    # - toc
+    # - footer
+---
+
+
+
+
+# Bugfix
 
 
 
@@ -8,7 +19,7 @@
 
 ??? bug-outline "Error & Solution"
 
-    ```linenums="0" title="Problem: ApplyTemplate"
+    ```.py title="Problem: ApplyTemplate"
     *Error comes after running this line
     _control, _template_path = execute_pptx_pipeline(
         _control,
@@ -68,7 +79,7 @@
 
 ??? bug-outline "Error & Solution"
 
-    ```linenums="0" title="Problem: xlrd not installed"
+    ```.py title="Problem: xlrd not installed"
     *Error comes after running this line
     scan_drives(scan, scan_ext)
 
