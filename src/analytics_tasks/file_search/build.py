@@ -1083,6 +1083,7 @@ def scan_clean(fs_index_dir):
 
 # %% Previous scan
 
+
 ## scan_history_pandas
 def scan_history_pandas(scan0, _fs_index_dir):
     """If no previous scan, starts everything anew."""
@@ -1118,7 +1119,6 @@ def scan_history_pandas(scan0, _fs_index_dir):
     return scan, scan_old, searchx_final_old
 
 
-
 ## scan_history
 def scan_history(scan0, _fs_index_dir):
     """If no previous scan, starts everything anew."""
@@ -1152,20 +1152,6 @@ def scan_history(scan0, _fs_index_dir):
         searchx_final_old = pl.DataFrame({"uf_id": [], "text": []})
 
     return scan, scan_old, searchx_final_old
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # %% Exceptions
@@ -1288,6 +1274,7 @@ def scan_drives(scan, scan_ext):
 # %% IPF (Intermediate file pool)
 
 
+## ifp
 def ifp(scan0, searchx_final_old):
     ## load all files from ipf
     ifp_list = scan_folder_searchx(time_machine, ext=r".pickle")
@@ -1344,11 +1331,12 @@ def ifp(scan0, searchx_final_old):
     return searchx
 
 
+## process_single_file_pandas
 def process_single_file_pandas(file_info):
     """Process a single file - designed for parallel execution"""
     try:
         unc, uf_id = file_info
-        print(f'Reading: {unc}')
+        print(f"Reading: {unc}")
         searchxx = pd.read_pickle(unc)
         searchxx = split_text(searchxx)  # limit row size
         searchxx["text"] = searchxx["text"].apply(lambda row: remove_emojis(row))
@@ -1365,26 +1353,34 @@ def process_single_file_pandas(file_info):
         return None
 
 
-
-
+## process_single_file
 def process_single_file(file_info):
     """Process a single file - designed for parallel execution"""
     try:
         # Standard schema for the DataFrame
-        standard_columns = ['text', 'uf_id', 'row', 'column', 'sheet',
-                           'formula_full', 'function', 'page', 'comments_top']
+        standard_columns = [
+            "text",
+            "uf_id",
+            "row",
+            "column",
+            "sheet",
+            "formula_full",
+            "function",
+            "page",
+            "comments_top",
+        ]
         standard_dtypes = {
-            'text': pl.String,
-            'uf_id': pl.Float64,
-            'row': pl.Float64,
-            'column': pl.Float64,
-            'sheet': pl.String,
-            'formula_full': pl.String,
-            'function': pl.String,
-            'page': pl.Float64,
-            'comments_top': pl.Float64
+            "text": pl.String,
+            "uf_id": pl.Float64,
+            "row": pl.Float64,
+            "column": pl.Float64,
+            "sheet": pl.String,
+            "formula_full": pl.String,
+            "function": pl.String,
+            "page": pl.Float64,
+            "comments_top": pl.Float64,
         }
-        
+
         unc, uf_id = file_info
         # print(f'Reading: {unc}')
         searchxx = pd.read_pickle(unc)
@@ -1395,10 +1391,10 @@ def process_single_file(file_info):
         if len(searchxx) >= 1:
             # Set uf_id for the entire DataFrame (assuming it's applied consistently)
             searchxx["uf_id"] = uf_id
-            
+
             # Convert to Polars DataFrame
             df = pl.DataFrame(searchxx)
-                        
+
             # Ensure all standard columns are present by adding missing ones with None values
             for col, dtype in standard_dtypes.items():
                 if col not in df.columns:
@@ -1414,36 +1410,36 @@ def process_single_file(file_info):
 
             # Reorder columns to match standard schema
             df = df.select(standard_columns)
-            
-            print(f"{unc} max len: {df['text'].str.len_chars().max()}")
+
+            # print(f"{unc} max len: {df['text'].str.len_chars().max()}")
             return df
-        
+
         return None
 
     except Exception as e:
         print(f"Error processing {unc}: {e}")
         # Create a DataFrame with error information
         error_data = {col: [] for col in standard_columns}
-        error_data['uf_id'] = [uf_id]
-        error_data['text'] = [f"Error: {e}"]
-        error_data['comments_top'] = ['']
-        error_data['formula_full'] = ['']
-        
+        error_data["uf_id"] = [uf_id]
+        error_data["text"] = [f"Error: {e}"]
+        error_data["comments_top"] = [""]
+        error_data["formula_full"] = [""]
+
         # Convert the error data to a Polars DataFrame
         df_error = pl.DataFrame(error_data)
-        
+
         # Ensure all standard columns are present by adding missing ones with None values
         for col, dtype in standard_dtypes.items():
             if col not in df_error.columns:
                 df_error = df_error.with_columns(pl.lit(None).cast(dtype).alias(col))
-        
+
         # Reorder columns to match standard schema
         df_error = df_error.select(standard_columns)
-        
+
         return df_error
 
 
-
+## ifp_optimized
 def ifp_optimized(scan0, searchx_final_old, max_workers=None, batch_size=100):
     """
     Optimized version with parallel processing and batching
@@ -1455,8 +1451,17 @@ def ifp_optimized(scan0, searchx_final_old, max_workers=None, batch_size=100):
         batch_size: Number of files to process in each batch
     """
     # Standard schema for the DataFrame
-    standard_columns = ['text', 'uf_id', 'row', 'column', 'sheet',
-                        'formula_full', 'function', 'page', 'comments_top']
+    standard_columns = [
+        "text",
+        "uf_id",
+        "row",
+        "column",
+        "sheet",
+        "formula_full",
+        "function",
+        "page",
+        "comments_top",
+    ]
 
     # Set default workers to CPU count
     if max_workers is None:
@@ -1541,10 +1546,14 @@ def ifp_optimized(scan0, searchx_final_old, max_workers=None, batch_size=100):
 
         for col in standard_columns:
             if col not in searchx_final_old.columns:
-                searchx_final_old = searchx_final_old.with_columns(pl.lit(None).alias(col))
+                searchx_final_old = searchx_final_old.with_columns(
+                    pl.lit(None).alias(col)
+                )
 
         # Remove any extra columns beyond the standard schema
-        cols_to_drop = [col for col in searchx_final_old.columns if col not in standard_columns]
+        cols_to_drop = [
+            col for col in searchx_final_old.columns if col not in standard_columns
+        ]
         searchx_final_old = searchx_final_old.drop(cols_to_drop)
 
         # Reorder columns to match standard schema
@@ -1561,7 +1570,6 @@ def ifp_optimized(scan0, searchx_final_old, max_workers=None, batch_size=100):
 
     # Convert back to pandas if needed for compatibility with rest of your code
     return searchx
-
 
 
 def ifp_optimized_pandas(scan0, searchx_final_old, max_workers=None, batch_size=100):
@@ -1660,7 +1668,6 @@ def ifp_optimized_pandas(scan0, searchx_final_old, max_workers=None, batch_size=
     return searchx
 
 
-
 # Alternative: Memory-efficient version that processes files one by one but with optimizations
 def ifp_memory_efficient(scan0, searchx_final_old, progress_interval=50):
     """
@@ -1752,6 +1759,7 @@ def ifp_memory_efficient(scan0, searchx_final_old, progress_interval=50):
 # %% Export indexes
 
 
+## export_index_files
 def export_index_files(_fs_index_dir, _time_machine_path, scan0, searchx):
     print("REPORT: Exporting final outputs...")
     os.chdir(_fs_index_dir)
@@ -1763,6 +1771,14 @@ def export_index_files(_fs_index_dir, _time_machine_path, scan0, searchx):
     except Exception:
         scan0_polars = pl.DataFrame(scan0)
         # searchx_polars = pl.DataFrame(searchx)
+
+    searchx = searchx.filter(
+        ~(
+            (searchx["text"] == "")  # Empty strings
+            | searchx["text"].is_null()  # Null values
+            | (searchx["text"] == ".")  # Only a dot
+        )
+    )
 
     # parquet: issues reading writing both with polars and pandas
     try:

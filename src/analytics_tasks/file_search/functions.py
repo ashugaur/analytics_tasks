@@ -9,42 +9,73 @@ from datetime import datetime, timezone
 
 ## Load file search index
 def load_fs_polars(scan_dir):
-    """Loads file search index into a polars datafame."""
+    """Loads file search index into a polars dataframe.
 
+    Args:
+        scan_dir: Path to directory containing parquet files
+    Returns:
+        DataFrame with aligned dtypes and joined data
+    """
     # change working directory
     os.chdir(scan_dir)
 
-    # import scan
+    standard_dtypes = {
+        "text": pl.String,
+        "uf_id": pl.Float64,
+        "row": pl.Float64,
+        "column": pl.Float64,
+        "sheet": pl.String,
+        "formula_full": pl.String,
+        "function": pl.String,
+        "page": pl.Float64,
+        "comments_top": pl.Float64,
+    }
+
     try:
         print("Loading file search index...")
         scan0 = pl.read_parquet("scan0.parquet")
         searchx_final = pl.read_parquet("searchx_final.parquet")
 
+        # Remove rows with unwanted text conditions
+        searchx_final = searchx_final.filter(
+            ~(
+                (searchx_final["text"] == "")  # Empty strings
+                | searchx_final["text"].is_null()  # Null values
+                | (searchx_final["text"] == ".")  # Only a dot
+            )
+        )
+
+        # Apply standard dtypes to both dataframes
+        for col, dtype in standard_dtypes.items():
+            if col in scan0.columns:
+                if scan0.schema.get(col) != dtype:
+                    scan0 = scan0.with_columns(scan0[col].cast(dtype))
+            if col in searchx_final.columns:
+                if searchx_final.schema.get(col) != dtype:
+                    searchx_final = searchx_final.with_columns(
+                        searchx_final[col].cast(dtype)
+                    )
+
+        # Join dataframes
         try:
             searchx = scan0.join(
                 searchx_final, left_on="uf_id", right_on="uf_id", how="left"
             )
         except Exception:
-            scan0 = scan0.with_columns(scan0["uf_id"].cast(pl.Int64))
+            # If join fails, ensure consistent types for uf_id
+            scan0 = scan0.with_columns(scan0["uf_id"].cast(pl.Float64))
             searchx_final = searchx_final.with_columns(
-                searchx_final["uf_id"].cast(pl.Int64)
+                searchx_final["uf_id"].cast(pl.Float64)
             )
             searchx = scan0.join(
                 searchx_final, left_on="uf_id", right_on="uf_id", how="left"
             )
-            print("WARNING: The format for uf_id field may be inconsistent.")
 
-        searchx = searchx.sort("lastwritetimeutc").reverse()
         print("Estimated size:", round(searchx.estimated_size(unit="mb"), 1), "MB")
-
         return searchx
-
-        del [scan0, searchx_final]
-
-        print("\nsearchx loaded...")
-    except Exception:
+    except Exception as e:
         print(
-            "WARNING: File search index not found. Please build the index using `fs_build.py`."
+            f"WARNING: File search index not found. Please build the index using `fs_build.py`.\nError: {e}"
         )
 
 
