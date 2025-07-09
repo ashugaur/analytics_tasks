@@ -1750,8 +1750,10 @@ def ifp_memory_efficient(scan0, searchx_final_old, progress_interval=50):
     if searchx_parts:
         searchx = pd.concat(searchx_parts, ignore_index=True)
         searchx = pd.concat([searchx, searchx_final_old], ignore_index=True)
+        searchx = searchx.unique()
     else:
         searchx = searchx_final_old.reset_index(drop=True)
+        searchx = searchx.unique()
 
     return searchx
 
@@ -1779,6 +1781,8 @@ def export_index_files(_fs_index_dir, _time_machine_path, scan0, searchx):
             | (searchx["text"] == ".")  # Only a dot
         )
     )
+
+    searchx = searchx.unique()
 
     # parquet: issues reading writing both with polars and pandas
     try:
