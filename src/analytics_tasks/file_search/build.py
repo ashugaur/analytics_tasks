@@ -1083,8 +1083,8 @@ def scan_clean(fs_index_dir):
 
 # %% Previous scan
 
-
-def scan_history(scan0, _fs_index_dir):
+## scan_history_pandas
+def scan_history_pandas(scan0, _fs_index_dir):
     """If no previous scan, starts everything anew."""
     os.chdir(_fs_index_dir)
     try:
@@ -1116,6 +1116,56 @@ def scan_history(scan0, _fs_index_dir):
         searchx_final_old = pd.DataFrame({"uf_id": "", "text": ""}, index=[0])
 
     return scan, scan_old, searchx_final_old
+
+
+
+## scan_history
+def scan_history(scan0, _fs_index_dir):
+    """If no previous scan, starts everything anew."""
+    os.chdir(_fs_index_dir)
+    try:
+        scan_old = pl.read_parquet("scan0.parquet")
+        searchx_final_old = pl.read_parquet("searchx_final.parquet")
+
+        # filter files different from previous scan
+        common_files = scan0.filter(scan0["uf_id"].is_in(searchx_final_old["uf_id"]))
+
+        # same as last time
+        scan_old = scan_old.filter(scan_old["unc"].is_in(common_files["unc"].unique()))
+        searchx_final_old = searchx_final_old.filter(
+            searchx_final_old["uf_id"].is_in(common_files["uf_id"].unique())
+        )
+
+        # files different from last time
+        scan = scan0.filter(~scan0["unc"].is_in(common_files["unc"].unique()))
+        scan = scan
+
+        print("\nREPORT: Total new files to be scanned is", scan["unc"].n_unique())
+
+    except Exception:
+        print("REPORT: No previous scan backup found.")
+        print(
+            "WARNING: Run may take a long time to complete depending on the disk speed and size."
+        )
+        scan = scan0
+        scan_old = pl.DataFrame()
+        searchx_final_old = pl.DataFrame({"uf_id": [], "text": []})
+
+    return scan, scan_old, searchx_final_old
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # %% Exceptions
@@ -1294,18 +1344,19 @@ def ifp(scan0, searchx_final_old):
     return searchx
 
 
-def process_single_file(file_info):
+def process_single_file_pandas(file_info):
     """Process a single file - designed for parallel execution"""
     try:
         unc, uf_id = file_info
+        print(f'Reading: {unc}')
         searchxx = pd.read_pickle(unc)
         searchxx = split_text(searchxx)  # limit row size
         searchxx["text"] = searchxx["text"].apply(lambda row: remove_emojis(row))
         searchxx = clean_import_load(searchxx)
-        print(f"{unc} max len: {searchxx['text'].str.len().max()}")
 
         if len(searchxx) >= 1:
             searchxx["uf_id"] = uf_id
+            print(f"{unc} max len: {searchxx['text'].str.len().max()}")
             return searchxx
         else:
             return None
@@ -1314,7 +1365,206 @@ def process_single_file(file_info):
         return None
 
 
+
+
+def process_single_file(file_info):
+    """Process a single file - designed for parallel execution"""
+    try:
+        # Standard schema for the DataFrame
+        standard_columns = ['text', 'uf_id', 'row', 'column', 'sheet',
+                           'formula_full', 'function', 'page', 'comments_top']
+        standard_dtypes = {
+            'text': pl.String,
+            'uf_id': pl.Float64,
+            'row': pl.Float64,
+            'column': pl.Float64,
+            'sheet': pl.String,
+            'formula_full': pl.String,
+            'function': pl.String,
+            'page': pl.Float64,
+            'comments_top': pl.Float64
+        }
+        
+        unc, uf_id = file_info
+        # print(f'Reading: {unc}')
+        searchxx = pd.read_pickle(unc)
+        searchxx = split_text(searchxx)  # limit row size
+        searchxx["text"] = searchxx["text"].apply(lambda row: remove_emojis(row))
+        searchxx = clean_import_load(searchxx)
+
+        if len(searchxx) >= 1:
+            # Set uf_id for the entire DataFrame (assuming it's applied consistently)
+            searchxx["uf_id"] = uf_id
+            
+            # Convert to Polars DataFrame
+            df = pl.DataFrame(searchxx)
+                        
+            # Ensure all standard columns are present by adding missing ones with None values
+            for col, dtype in standard_dtypes.items():
+                if col not in df.columns:
+                    df = df.with_columns(pl.lit(None).cast(dtype).alias(col))
+
+            # Remove any extra columns beyond the standard schema
+            cols_to_drop = [col for col in df.columns if col not in standard_columns]
+            df = df.drop(cols_to_drop)
+
+            # Cast columns to standard data types
+            for col, dtype in standard_dtypes.items():
+                df = df.with_columns(pl.col(col).cast(dtype))
+
+            # Reorder columns to match standard schema
+            df = df.select(standard_columns)
+            
+            print(f"{unc} max len: {df['text'].str.len_chars().max()}")
+            return df
+        
+        return None
+
+    except Exception as e:
+        print(f"Error processing {unc}: {e}")
+        # Create a DataFrame with error information
+        error_data = {col: [] for col in standard_columns}
+        error_data['uf_id'] = [uf_id]
+        error_data['text'] = [f"Error: {e}"]
+        error_data['comments_top'] = ['']
+        error_data['formula_full'] = ['']
+        
+        # Convert the error data to a Polars DataFrame
+        df_error = pl.DataFrame(error_data)
+        
+        # Ensure all standard columns are present by adding missing ones with None values
+        for col, dtype in standard_dtypes.items():
+            if col not in df_error.columns:
+                df_error = df_error.with_columns(pl.lit(None).cast(dtype).alias(col))
+        
+        # Reorder columns to match standard schema
+        df_error = df_error.select(standard_columns)
+        
+        return df_error
+
+
+
 def ifp_optimized(scan0, searchx_final_old, max_workers=None, batch_size=100):
+    """
+    Optimized version with parallel processing and batching
+
+    Args:
+        scan0: DataFrame with uf_id column
+        searchx_final_old: DataFrame with existing data
+        max_workers: Number of parallel workers (default: CPU count)
+        batch_size: Number of files to process in each batch
+    """
+    # Standard schema for the DataFrame
+    standard_columns = ['text', 'uf_id', 'row', 'column', 'sheet',
+                        'formula_full', 'function', 'page', 'comments_top']
+
+    # Set default workers to CPU count
+    if max_workers is None:
+        max_workers = min(mp.cpu_count(), 8)  # Cap at 8 to avoid too many processes
+
+    print(f"Using {max_workers} parallel workers")
+
+    ## Load all files from ifp
+    ifp_list = scan_folder_searchx(time_machine, ext=r".pickle")
+
+    # Convert to sets for faster lookup
+    scan0_ids = set(scan0["uf_id"].tolist())
+    existing_ids = set(searchx_final_old["uf_id"].unique().to_list())
+
+    # Flag files using vectorized operations
+    ifp_list["archive"] = np.where(ifp_list["uf_id"].isin(scan0_ids), 0, 1)
+
+    # Split into keep and remove
+    keep = ifp_list[ifp_list["archive"] == 0].copy()
+    keep_not = ifp_list[ifp_list["archive"] == 1].copy()
+
+    ## Remove old files in parallel (I/O bound - use ThreadPoolExecutor)
+    if len(keep_not) > 0:
+        print("Running time machine updates...")
+        files_to_remove = keep_not["unc"].tolist()
+
+        def remove_file(filepath):
+            try:
+                os.remove(filepath)
+                return f"REMOVED: {filepath}"
+            except Exception as e:
+                return f"ERROR removing {filepath}: {e}"
+
+        with ThreadPoolExecutor(max_workers=min(max_workers, 4)) as executor:
+            removal_results = list(executor.map(remove_file, files_to_remove))
+            for result in removal_results:
+                print(result)
+
+    ## Filter to completely new files using set operations
+    keep = keep[~keep["uf_id"].isin(existing_ids)].reset_index(drop=True)
+
+    total_files = len(keep)
+    print(f"...refreshing index with {total_files:,} files...")
+
+    if total_files == 0:
+        return searchx_final_old.reset_index(drop=True)
+
+    # Prepare file info for parallel processing
+    file_info_list = [(row["unc"], row["uf_id"]) for _, row in keep.iterrows()]
+
+    # Process files in batches to manage memory
+    all_results = []
+
+    for batch_start in range(0, total_files, batch_size):
+        batch_end = min(batch_start + batch_size, total_files)
+        batch_files = file_info_list[batch_start:batch_end]
+
+        print(
+            f"Processing batch {batch_start // batch_size + 1} of {(total_files - 1) // batch_size + 1} "
+            f"(files {batch_start + 1}-{batch_end})"
+        )
+
+        # Process batch in parallel
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            batch_results = list(executor.map(process_single_file, batch_files))
+
+        # Filter out None results and collect valid DataFrames
+        valid_results = [df for df in batch_results if df is not None and len(df) >= 1]
+
+        if valid_results:
+            # Concatenate batch results using Polars
+            batch_df = pl.concat(valid_results)
+            all_results.append(batch_df)
+            print(f"Batch completed: {len(valid_results)} valid files processed")
+
+    # Combine all results
+    if all_results:
+        searchx = pl.concat(all_results)
+        # Ensure searchx_final_old has the same columns as searchx
+        if isinstance(searchx_final_old, pd.DataFrame):
+            searchx_final_old = pl.DataFrame(searchx_final_old)
+
+        for col in standard_columns:
+            if col not in searchx_final_old.columns:
+                searchx_final_old = searchx_final_old.with_columns(pl.lit(None).alias(col))
+
+        # Remove any extra columns beyond the standard schema
+        cols_to_drop = [col for col in searchx_final_old.columns if col not in standard_columns]
+        searchx_final_old = searchx_final_old.drop(cols_to_drop)
+
+        # Reorder columns to match standard schema
+        searchx_final_old = searchx_final_old.select(standard_columns)
+
+        # Combine with existing data
+        # print(searchx.glimpse())
+        # print(searchx_final_old.glimpse())
+        searchx = pl.concat([searchx, searchx_final_old])
+    else:
+        searchx = searchx_final_old
+        if isinstance(searchx, pd.DataFrame):
+            searchx = pl.DataFrame(searchx)
+
+    # Convert back to pandas if needed for compatibility with rest of your code
+    return searchx
+
+
+
+def ifp_optimized_pandas(scan0, searchx_final_old, max_workers=None, batch_size=100):
     """
     Optimized version with parallel processing and batching
 
@@ -1408,6 +1658,7 @@ def ifp_optimized(scan0, searchx_final_old, max_workers=None, batch_size=100):
         searchx = searchx_final_old.reset_index(drop=True)
 
     return searchx
+
 
 
 # Alternative: Memory-efficient version that processes files one by one but with optimizations
@@ -1508,15 +1759,15 @@ def export_index_files(_fs_index_dir, _time_machine_path, scan0, searchx):
     # convert to polars dataframe
     try:
         scan0_polars = pl.DataFrame(scan0.replace("", None))
-        searchx_polars = pl.DataFrame(searchx.replace("", None))
+        # searchx_polars = pl.DataFrame(searchx.replace("", None))
     except Exception:
         scan0_polars = pl.DataFrame(scan0)
-        searchx_polars = pl.DataFrame(searchx)
+        # searchx_polars = pl.DataFrame(searchx)
 
     # parquet: issues reading writing both with polars and pandas
     try:
         scan0_polars.write_parquet("scan0.parquet")
-        searchx_polars.write_parquet("searchx_final.parquet")
+        searchx.write_parquet("searchx_final.parquet")
         print(f"REPORT: searchx, row_count = {len(searchx):,}")
     except Exception:
         print("ERROR: Issues exporting as paraquet.")
