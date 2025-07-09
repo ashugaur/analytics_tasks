@@ -1302,6 +1302,7 @@ def process_single_file(file_info):
         searchxx = split_text(searchxx)  # limit row size
         searchxx["text"] = searchxx["text"].apply(lambda row: remove_emojis(row))
         searchxx = clean_import_load(searchxx)
+        print(f"{unc} max len: {searchxx['text'].str.len().max()}")
 
         if len(searchxx) >= 1:
             searchxx["uf_id"] = uf_id
