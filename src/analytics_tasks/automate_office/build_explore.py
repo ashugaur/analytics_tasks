@@ -20,6 +20,10 @@ import ast
 from analytics_tasks.automate_office.build_batch import transform_data
 
 
+## Assign folder or file names
+folder_dt = datetime.now(timezone.utc).strftime("%Y%m%d")
+file_dt = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+
 ## 0. Assign global variables
 def initialize_explore_globals(at_dir):
     """Initialize global variables in the calling module"""
@@ -157,10 +161,6 @@ def load_macro_workbook(
     else:
         open_file_folder(_latest_file.replace("/", "\\"))
 
-
-## Assign folder or file names
-folder_dt = datetime.now(timezone.utc).strftime("%Y%m%d")
-file_dt = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
 
 ## clean_merge

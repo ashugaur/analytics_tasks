@@ -1568,6 +1568,8 @@ def ifp_optimized(scan0, searchx_final_old, max_workers=None, batch_size=100):
         if isinstance(searchx, pd.DataFrame):
             searchx = pl.DataFrame(searchx)
 
+    searchx = searchx.unique()
+
     # Convert back to pandas if needed for compatibility with rest of your code
     return searchx
 
@@ -1665,6 +1667,8 @@ def ifp_optimized_pandas(scan0, searchx_final_old, max_workers=None, batch_size=
     else:
         searchx = searchx_final_old.reset_index(drop=True)
 
+    searchx = searchx.unique()
+
     return searchx
 
 
@@ -1755,6 +1759,8 @@ def ifp_memory_efficient(scan0, searchx_final_old, progress_interval=50):
         searchx = searchx_final_old.reset_index(drop=True)
         searchx = searchx.unique()
 
+    searchx = searchx.unique()
+
     return searchx
 
 
@@ -1781,8 +1787,6 @@ def export_index_files(_fs_index_dir, _time_machine_path, scan0, searchx):
             | (searchx["text"] == ".")  # Only a dot
         )
     )
-
-    searchx = searchx.unique()
 
     # parquet: issues reading writing both with polars and pandas
     try:
