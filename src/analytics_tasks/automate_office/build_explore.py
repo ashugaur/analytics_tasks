@@ -31,7 +31,7 @@ def initialize_explore_globals(at_dir):
     caller_globals = sys._getframe(1).f_globals
 
     # Get the results
-    results = lib_refs_ao_explore(at_dir)
+    results = lib_refs_ao_explore(at_dir, report_name='explore')
     var_names = [
         "_colors_file",
         "_xlsm_path",
