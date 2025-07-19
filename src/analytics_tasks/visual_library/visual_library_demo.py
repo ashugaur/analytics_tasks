@@ -244,6 +244,7 @@ def create_site(
             padding: 10px;
             max-width: 1200px;
             margin: 0 auto;
+            background-color: {page_color};
         }}
 
         .gallery-item {{
@@ -251,13 +252,13 @@ def create_site(
             width: 100%;
             border-radius: 8px;
             overflow: hidden;
-            background-color: white;
+            background-color: {page_color};
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }}
 
         .gallery-item:hover {{
-            transform: translateY(-2px);
+            transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }}
 
@@ -277,10 +278,10 @@ def create_site(
 
         .image-caption {{
             padding: 8px 10px;
-            background-color: #f8f9fa;
+            background-color: {page_color};
             border-bottom: 1px solid #e0e0e0;
             font-size: 12px;
-            color: #495057;
+            color: {toc_color};
             text-align: center;
             font-weight: 500;
             word-break: break-word;
@@ -288,8 +289,8 @@ def create_site(
 
         .file-list {{
             padding: 5px;
-            background-color: #f9f9f9;
-            border-top: 1px solid #e0e0e0;
+            background-color: {page_color};
+            border-top: 1px solid {page_color};
         }}
 
         .file-link {{
@@ -304,7 +305,7 @@ def create_site(
         }}
 
         .file-link:hover {{
-            opacity: 0.8;
+            opacity: 0.5;
         }}
 
         /* File type specific colors */"""
@@ -326,7 +327,7 @@ def create_site(
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.3);
             z-index: 2000;
         }
 
@@ -336,7 +337,7 @@ def create_site(
             max-height: 90vh;
             margin: 5% auto;
             padding: 20px;
-            background-color: white;
+            background-color: rgba(212, 188, 150, 0.5);
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         }
@@ -405,7 +406,7 @@ def create_site(
 
         /* Scrollbar styling for webkit browsers */
         .toc-sidebar::-webkit-scrollbar {{
-            width: 6px;
+            width: 3px;
         }}
 
         .toc-sidebar::-webkit-scrollbar-track {{
