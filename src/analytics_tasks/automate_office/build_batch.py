@@ -2519,9 +2519,14 @@ def pass_dict_to_transform(df, parameter_dict):
         if isinstance(parameter_dict.get("value", None), list)
         else parameter_dict.get("value")
     )
+    y_override_param = (
+        parameter_dict.get("y_override", [None])[0]
+        if isinstance(parameter_dict.get("y_override", None), list)
+        else parameter_dict.get("y_override")
+    )
 
     # Call transform_data with the extracted parameters
-    return transform_data(df, x=x_param, y=y_param, z=z_param, value=value_param)
+    return transform_data(df, x=x_param, y=y_param, z=z_param, value=value_param, y_override=y_override_param)
 
 
 ## ppt_learn
@@ -2811,7 +2816,7 @@ def scan_destination(location_to_scan, ext):
 
 
 ## transform_data
-def transform_data(df, x=None, y=None, z=None, value=None):
+def transform_data(df, x=None, y=None, z=None, value=None, y_override=None):
     """
     Transforms the input DataFrame by creating a structured output with 'x', 'y', 'z', and 'value' columns.
 
@@ -2821,6 +2826,7 @@ def transform_data(df, x=None, y=None, z=None, value=None):
         y (list or str, optional): Column(s) whose values will be placed in 'y' column
         z (list or str, optional): Additional column(s) to retain in the output
         value (list or str, optional): Column(s) whose values should be used as 'value' in output
+        y_override (str, optional): Override value for column 'y'. If specified, this will be used instead of the actual values.
 
     Returns:
         pd.DataFrame: Transformed DataFrame with columns named 'x', 'y', 'z', and 'value'
@@ -2851,8 +2857,7 @@ def transform_data(df, x=None, y=None, z=None, value=None):
         if len(y) == 1 and value:
             result_df = working_df[x + y + (z if z else []) + value].copy()
             result_df = result_df.rename(
-                columns={x[0]: "x", y[0]: "y", value[0]: "value"}
-            )
+                columns={x[0]: "x", y[0]: "y", value[0]: "value"})
 
         # Case 2: Multiple y columns and value is specified
         elif len(y) > 1 and value:
@@ -2862,8 +2867,7 @@ def transform_data(df, x=None, y=None, z=None, value=None):
             for y_col in y:
                 temp_df = working_df[x + [y_col] + (z if z else []) + value].copy()
                 temp_df = temp_df.rename(
-                    columns={x[0]: "x", y_col: "y", value[0]: "value"}
-                )
+                    columns={x[0]: "x", y_col: "y", value[0]: "value"})
                 rows_list.append(temp_df)
 
             result_df = pd.concat(rows_list, ignore_index=True)
@@ -2885,6 +2889,10 @@ def transform_data(df, x=None, y=None, z=None, value=None):
             )
             result_df = result_df.rename(columns={x[0]: "x"})
 
+        # Handle y override
+        if y_override:
+            result_df["y"] = y_override
+
         # Handle z column(s) renaming
         if z:
             if len(z) == 1:
@@ -2895,9 +2903,7 @@ def transform_data(df, x=None, y=None, z=None, value=None):
 
         # Create list of columns for output
         z_cols = (
-            ["z"]
-            if z and len(z) == 1
-            else [f"z{i + 1}" for i in range(len(z) if z else 0)]
+            ["z"] if z and len(z) == 1 else [f"z{i + 1}" for i in range(len(z) if z else 0)]
         )
         output_columns = ["x", "y"] + z_cols + ["value"]
 

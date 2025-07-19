@@ -13,9 +13,9 @@ def create_site(
     toc_color="#007bff",
     toc_bg_color="rgba(255, 255, 255, 0.9)",
     image_extensions=[
-        ".png",
         ".jpg",
         ".jpeg",
+        ".png",
         ".gif",
         ".bmp",
         ".svg",
@@ -59,9 +59,6 @@ def create_site(
         ".js": ("js", "#ffc107"),
         ".css": ("css", "#20c997"),
     }
-
-    # Image extensions in order of preference
-    # image_extensions = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp", ".jfif"]
 
     def scan_folder(folder_path):
         """Scan folder and organize files by base name"""
@@ -129,6 +126,7 @@ def create_site(
             if gallery_items:
                 # Sort items by basename for consistent ordering
                 gallery_items.sort(key=lambda x: x["basename"])
+                # gallery_items.sort(key=lambda x: image_extensions.index(x["image"]["extension"]))
                 gallery_data[subfolder_name] = gallery_items
 
         return gallery_data
