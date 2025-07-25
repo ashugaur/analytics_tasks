@@ -1440,7 +1440,7 @@ def process_single_file(file_info):
 
 
 ## ifp_optimized
-def ifp_optimized(scan0, searchx_final_old, max_workers=None, batch_size=100):
+def ifp_optimized(scan0, searchx_final_old, scan_ext, scan_size, max_workers=None, batch_size=100):
     """
     Optimized version with parallel processing and batching
 
@@ -1473,11 +1473,21 @@ def ifp_optimized(scan0, searchx_final_old, max_workers=None, batch_size=100):
     ifp_list = scan_folder_searchx(time_machine, ext=r".pickle")
 
     # Convert to sets for faster lookup
-    scan0_ids = set(scan0["uf_id"].tolist())
+    #scan0_ids = set(scan0["uf_id"].tolist())
     existing_ids = set(searchx_final_old["uf_id"].unique().to_list())
 
-    # Flag files using vectorized operations
-    ifp_list["archive"] = np.where(ifp_list["uf_id"].isin(scan0_ids), 0, 1)
+    # Create a dictionary that maps each extension to its size limit
+    extension_sizes = {}
+    for ext_type, exts in scan_ext.items():
+        for ext in exts:
+            extension_sizes[ext] = scan_size[ext_type][0]
+
+    ifp_listx = pd.merge(ifp_list, scan0[['uf_id', 'size_mb', 'ext']], how="left")
+    size_within_limit = ifp_listx['size_mb'].le(ifp_listx['ext'].map(extension_sizes).fillna(float('inf')))
+    ifp_listx['flag'] = size_within_limit
+    # ifp_list["archive"] = np.where(ifp_list["uf_id"].isin(scan0_ids) & size_within_limit, 0, 1)
+    ifp_list["archive"] = np.where(ifp_list['uf_id'].isin(ifp_listx[ifp_listx['flag']==1]['uf_id']), 0, 1)
+    #ifp_list.loc[ifp_list['uf_id'].isin(scan0_ids), 'archive'] = 0
 
     # Split into keep and remove
     keep = ifp_list[ifp_list["archive"] == 0].copy()

@@ -85,32 +85,64 @@ def load_fs_polars(scan_dir):
 class query:
     def __init__(self, searchx):
         self.searchx = searchx
+        self.unc_func = "unc"
+        self.ext = "ext"
+        self.text = "text"
+        self.lastwritetimeutc = "lastwritetimeutc"
 
-    def fs_summary(self, substring):
+    def fs_summary(self, substring, field=None):
         """Summary of search results for a given substring"""
+
+        self.field = field
         try:
-            query = (
-                self.searchx.select(
-                    pl.col("unc", "ext"),
-                    pl.col("text")
-                    .str.contains_any([str(substring)], ascii_case_insensitive=True)
-                    .alias("text_flag"),
+            if self.field:
+                print(f"Searching <{substring}> in field <{self.field}>")
+                query = (
+                    self.searchx.select(
+                        pl.col(self.unc_func, self.ext),
+                        pl.col(self.unc_func)
+                        .str.contains_any([str(substring)], ascii_case_insensitive=True)
+                        .alias("unc_flag"),
+                    )
+                    .filter(pl.col("unc_flag"))
+                    .select(pl.col(self.unc_func, self.ext))
+                    .unique()
+                    .sort(self.ext)
                 )
-                .filter(pl.col("text_flag"))
-                .sort("ext")
-            )
-
-            query_n_unique = query.select(pl.col("unc").n_unique())
-
-            query_summary = (
-                query.group_by("ext")
-                .agg(
-                    pl.col("unc").n_unique().alias("files"),
-                    pl.col("unc").count().alias("frequency"),
+                print(query)
+            else:
+                query = (
+                    self.searchx.select(
+                        pl.col(self.unc_func, self.ext),
+                        pl.col(self.text)
+                        .str.contains_any([str(substring)], ascii_case_insensitive=True)
+                        .alias("text_flag"),
+                    )
+                    .filter(pl.col("text_flag"))
+                    .sort(self.ext)
                 )
-                .sort("files")
-                .reverse()
-            )
+
+            query_n_unique = query.select(pl.col(self.unc_func).n_unique())
+
+            if self.field:
+                query_summary = (
+                    query.group_by(self.ext)
+                    .agg(
+                        pl.col(self.unc_func).n_unique().alias("files"),
+                    )
+                    .sort("files")
+                    .reverse()
+                )
+            else:
+                query_summary = (
+                    query.group_by(self.ext)
+                    .agg(
+                        pl.col(self.unc_func).n_unique().alias("files"),
+                        pl.col(self.unc_func).count().alias("frequency"),
+                    )
+                    .sort("files")
+                    .reverse()
+                )
 
             if query_summary.is_empty():
                 raise ValueError(f"No matches to substring '{substring}'")
@@ -126,12 +158,16 @@ class query:
             return query_summary
 
         except Exception as e:
-            print(f"Error generating summary: {e}")
+            print(f"Result: {e}")
             return None
 
     ## fs_details
-    def fs_details(self, substring, reports_folder, ext_filter=None, dark_mode=0):
+    def fs_details(
+        self, substring, reports_folder, ext_filter=None, field=None, dark_mode=0
+    ):
         """overall details of searchx results as .html file"""
+
+        self.field = field
 
         # export html
         if dark_mode == 1:
@@ -147,13 +183,13 @@ class query:
                 utc_font_size="11px",
             ):
                 df1 = (
-                    df.select(pl.col("unc", "lastwritetimeutc"))
+                    df.select(pl.col(self.unc_func, self.lastwritetimeutc))
                     .unique()
-                    .sort("lastwritetimeutc")
+                    .sort(self.lastwritetimeutc)
                     .reverse()
                 )
-                unique_unc_values = df1["unc"]
-                unique_lastwritetimeutc_values = df1["lastwritetimeutc"]
+                unique_unc_values = df1[self.unc_func]
+                unique_lastwritetimeutc_values = df1[self.lastwritetimeutc]
 
                 with open(file_path, "w", encoding="utf-8") as file:
                     file.write("<html>\n<head>\n<style>\n")
@@ -209,14 +245,16 @@ class query:
 
                     # Content
                     file.write('<div class="content">\n')
-                    sorted_df = df.sort(["unc", "ext"])
+                    sorted_df = df.sort([self.unc_func, self.ext])
                     for i, (index, unc_value) in enumerate(
                         zip(range(1, len(unique_unc_values) + 1), unique_unc_values)
                     ):
-                        filtered_df = sorted_df.filter(sorted_df["unc"] == unc_value)
+                        filtered_df = sorted_df.filter(
+                            sorted_df[self.unc_func] == unc_value
+                        )
                         first_row = filtered_df.to_pandas().iloc[0]
                         file.write(
-                            f'<p class="unc-bold" id="{unc_value}">{index:02d}. <a href="{unc_value}" target="_blank">{unc_value}</a> <span class="utc" style="font-size: {utc_font_size};">{first_row["lastwritetimeutc"]}</span></p>\n'
+                            f'<p class="unc-bold" id="{unc_value}">{index:02d}. <a href="{unc_value}" target="_blank">{unc_value}</a> <span class="utc" style="font-size: {utc_font_size};">{first_row[self.lastwritetimeutc]}</span></p>\n'
                         )  # hyperlink to external file
                         for row in filtered_df.to_pandas().itertuples(index=False):
                             file.write(f'<p id="{row.text}">{row.text}</p>\n')
@@ -238,13 +276,13 @@ class query:
                 utc_font_size="11px",
             ):
                 df1 = (
-                    df.select(pl.col("unc", "lastwritetimeutc"))
+                    df.select(pl.col(self.unc_func, self.lastwritetimeutc))
                     .unique()
-                    .sort("lastwritetimeutc")
+                    .sort(self.lastwritetimeutc)
                     .reverse()
                 )
-                unique_unc_values = df1["unc"]
-                unique_lastwritetimeutc_values = df1["lastwritetimeutc"]
+                unique_unc_values = df1[self.unc_func]
+                unique_lastwritetimeutc_values = df1[self.lastwritetimeutc]
 
                 with open(file_path, "w", encoding="utf-8") as file:
                     file.write("<html>\n<head>\n<style>\n")
@@ -306,14 +344,16 @@ class query:
 
                     # Content
                     file.write('<div class="content">\n')
-                    sorted_df = df.sort(["unc", "ext"])
+                    sorted_df = df.sort([self.unc_func, self.ext])
                     for i, (index, unc_value) in enumerate(
                         zip(range(1, len(unique_unc_values) + 1), unique_unc_values)
                     ):
-                        filtered_df = sorted_df.filter(sorted_df["unc"] == unc_value)
+                        filtered_df = sorted_df.filter(
+                            sorted_df[self.unc_func] == unc_value
+                        )
                         first_row = filtered_df.to_pandas().iloc[0]
                         file.write(
-                            f'<p class="unc-bold" id="{unc_value}">{index:02d}. <a href="{unc_value}" target="_blank">{unc_value}</a> <span class="utc" style="font-size: {utc_font_size};">{first_row["lastwritetimeutc"]}</span></p>\n'
+                            f'<p class="unc-bold" id="{unc_value}">{index:02d}. <a href="{unc_value}" target="_blank">{unc_value}</a> <span class="utc" style="font-size: {utc_font_size};">{first_row[self.lastwritetimeutc]}</span></p>\n'
                         )  # Hyperlink to external file
                         for row in filtered_df.to_pandas().itertuples(index=False):
                             file.write(f'<p id="{row.text}">{row.text}</p>\n')
@@ -324,36 +364,50 @@ class query:
                     file.write("</div>\n</body>\n</html>")
 
         # search
-        query = self.searchx.select(
-            pl.col("unc", "ext", "lastwritetimeutc", "text"),
-            pl.col("text")
-            .str.contains_any([str(substring)], ascii_case_insensitive=True)
-            .alias("text_flag"),
-        ).filter(pl.col("text_flag"))
+        if self.field:
+            query = (
+                self.searchx.select(
+                    pl.col(self.unc_func, self.ext, self.lastwritetimeutc),
+                    pl.col(self.field)
+                    .str.contains_any([str(substring)], ascii_case_insensitive=True)
+                    .alias("text"),
+                )
+                .filter(pl.col("text"))
+                .unique()
+            )
+        else:
+            query = self.searchx.select(
+                pl.col(self.unc_func, self.ext, self.lastwritetimeutc, self.text),
+                pl.col(self.text)
+                .str.contains_any([str(substring)], ascii_case_insensitive=True)
+                .alias("text_flag"),
+            ).filter(pl.col("text_flag"))
 
         if ext_filter:
-            query = query.filter(pl.col("ext").is_in(ext_filter))
+            query = query.filter(pl.col(self.ext).is_in(ext_filter))
 
         query = (
-            query.select(pl.col("unc", "ext", "lastwritetimeutc", "text"))
-            .sort("lastwritetimeutc")
+            query.select(
+                pl.col(self.unc_func, self.ext, self.lastwritetimeutc, self.text)
+            )
+            .sort(self.lastwritetimeutc)
             .reverse()
         )
 
         query_records = query.shape[0]
-        query_n_unique = query.select(pl.col("unc").n_unique())
+        query_n_unique = query.select(pl.col(self.unc_func).n_unique())
 
         query_summary = (
-            query.group_by("ext")
+            query.group_by(self.ext)
             .agg(
-                pl.col("unc").n_unique().alias("files"),
-                pl.col("unc").count().alias("frequency"),
+                pl.col(self.unc_func).n_unique().alias("files"),
+                pl.col(self.unc_func).count().alias("frequency"),
             )
             .sort("files")
             .reverse()
         )
 
-        grouped_df = query_summary.group_by("ext").agg(
+        grouped_df = query_summary.group_by(self.ext).agg(
             pl.col("files").sum().alias("total_files"),
             pl.col("frequency").sum().alias("total_frequency"),
         )
@@ -362,7 +416,7 @@ class query:
         data = [
             (ext, total_files, total_frequency)
             for ext, total_files, total_frequency in zip(
-                grouped_df["ext"],
+                grouped_df[self.ext],
                 grouped_df["total_files"],
                 grouped_df["total_frequency"],
             )

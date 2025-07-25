@@ -50,11 +50,12 @@ scan_size = {
     "txt": [3],
     "docx": [500],
     "pptx": [500],
+    "ppt": [50],
     "msg": [100],
     "eml": [100],
     "epub": [300],
     "pdf": [300],
-    "excel": [2],
+    "excel": [0.010891],
 }
 
 
@@ -116,7 +117,7 @@ scan_drives(scan, scan_ext)
 
 
 ## Index files creating an 'intermediate file pool'
-searchx = ifp_optimized(scan0, searchx_final_old)
+searchx = ifp_optimized(scan0, searchx_final_old, scan_ext, scan_size)
 
 
 ## Export search index

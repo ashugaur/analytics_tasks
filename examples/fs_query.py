@@ -26,25 +26,31 @@ fs_index_dir, logs_folder, time_machine, reports_folder = lib_refs_fs(at_dir)
 ## File search index & its coverage
 searchx = load_fs_polars(fs_index_dir)
 
-## Coverage
-all = overview(searchx)
-all.fs_coverage(reports_folder, dark_mode=1)
-
 
 # %% Search report(s)
 
 ## Find 'substring' in files
-substring = "the"
+substring = "script"
 report = query(searchx)
 report.fs_summary(substring)
 
-
-## Details
-report.fs_details(substring, reports_folder, ext_filter=[])
-
+## Summary by field
+report.fs_summary(substring, field="unc")
 
 ## Details by extension
-report.fs_details(substring, reports_folder, ext_filter=[".py"])
+report.fs_details(substring, reports_folder, ext_filter=[".py"], dark_mode=1)
+
+## Details for field by extension
+report.fs_details(
+    substring, reports_folder, ext_filter=[".py"], field="unc", dark_mode=1
+)
+
+## All details
+report.fs_details(substring, reports_folder, ext_filter=[], dark_mode=1)
+
+## Coverage
+all = overview(searchx)
+all.fs_coverage(reports_folder, dark_mode=1)
 
 
 # %% Extract text corpus
@@ -76,5 +82,5 @@ Objective: Derive 'info_schema_parsed.HashTags' to classify files using
 generator = fdg.FakeDataGenerator()
 info_schema_df = generator.generate_fake_info_schema(num_rows=50)
 info_schema_parsed = info_schema_parser.info_schema_parser(searchx, info_schema_df)
-print('\nReport: Information schema values in .sql files stored in column `HashTags`.')
+print("\nReport: Information schema values in .sql files stored in column `HashTags`.")
 info_schema_parsed["HashTags"].unique().head().to_list()
