@@ -109,7 +109,7 @@ class query:
                     .unique()
                     .sort(self.ext)
                 )
-                print(query)
+                # print(query)
             else:
                 query = (
                     self.searchx.select(
