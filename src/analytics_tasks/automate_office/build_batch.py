@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from openpyxl.utils import get_column_letter
 import sys
 from analytics_tasks.utils.functions import log_start, log_end
+from analytics_tasks_utils.scanning import scan_destination
 
 
 ## 0. Assign global variables
@@ -2526,7 +2527,14 @@ def pass_dict_to_transform(df, parameter_dict):
     )
 
     # Call transform_data with the extracted parameters
-    return transform_data(df, x=x_param, y=y_param, z=z_param, value=value_param, y_override=y_override_param)
+    return transform_data(
+        df,
+        x=x_param,
+        y=y_param,
+        z=z_param,
+        value=value_param,
+        y_override=y_override_param,
+    )
 
 
 ## ppt_learn
@@ -2798,23 +2806,6 @@ def run_dynamic_function(function_name, params_dict, df, globals_dict=None):
     return func(**kwargs)
 
 
-## scan_destination
-def scan_destination(location_to_scan, ext):
-    scan = []
-    for i in glob.iglob(rf"{location_to_scan}\**\*{ext}".format(ext), recursive=True):
-        scan.append(i)
-    if len(scan) > 0:
-        scan = pd.DataFrame(scan).rename(columns={0: "unc"})
-        scan["filename"] = scan["unc"].apply(lambda row: Path(row).name)
-        scan["ext"] = scan["unc"].apply(
-            lambda row: os.path.splitext(os.path.basename(row))[1]
-        )
-        scan["chart_hash"] = scan.filename.str.rsplit(".", expand=True, n=0)[0]
-    else:
-        scan = pd.DataFrame({"filename": ""}, index=([0]))
-    return scan
-
-
 ## transform_data
 def transform_data(df, x=None, y=None, z=None, value=None, y_override=None):
     """
@@ -2857,7 +2848,8 @@ def transform_data(df, x=None, y=None, z=None, value=None, y_override=None):
         if len(y) == 1 and value:
             result_df = working_df[x + y + (z if z else []) + value].copy()
             result_df = result_df.rename(
-                columns={x[0]: "x", y[0]: "y", value[0]: "value"})
+                columns={x[0]: "x", y[0]: "y", value[0]: "value"}
+            )
 
         # Case 2: Multiple y columns and value is specified
         elif len(y) > 1 and value:
@@ -2867,7 +2859,8 @@ def transform_data(df, x=None, y=None, z=None, value=None, y_override=None):
             for y_col in y:
                 temp_df = working_df[x + [y_col] + (z if z else []) + value].copy()
                 temp_df = temp_df.rename(
-                    columns={x[0]: "x", y_col: "y", value[0]: "value"})
+                    columns={x[0]: "x", y_col: "y", value[0]: "value"}
+                )
                 rows_list.append(temp_df)
 
             result_df = pd.concat(rows_list, ignore_index=True)
@@ -2903,7 +2896,9 @@ def transform_data(df, x=None, y=None, z=None, value=None, y_override=None):
 
         # Create list of columns for output
         z_cols = (
-            ["z"] if z and len(z) == 1 else [f"z{i + 1}" for i in range(len(z) if z else 0)]
+            ["z"]
+            if z and len(z) == 1
+            else [f"z{i + 1}" for i in range(len(z) if z else 0)]
         )
         output_columns = ["x", "y"] + z_cols + ["value"]
 

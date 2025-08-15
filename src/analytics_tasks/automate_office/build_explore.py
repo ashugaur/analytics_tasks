@@ -18,11 +18,12 @@ import glob
 import matplotlib.colors as mcolors
 import ast
 from analytics_tasks.automate_office.build_batch import transform_data
-
+from analytics_tasks_utils.scanning import scan_destination
 
 ## Assign folder or file names
 folder_dt = datetime.now(timezone.utc).strftime("%Y%m%d")
 file_dt = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+
 
 ## 0. Assign global variables
 def initialize_explore_globals(at_dir):
@@ -31,7 +32,7 @@ def initialize_explore_globals(at_dir):
     caller_globals = sys._getframe(1).f_globals
 
     # Get the results
-    results = lib_refs_ao_explore(at_dir, report_name='explore')
+    results = lib_refs_ao_explore(at_dir, report_name="explore")
     var_names = [
         "_colors_file",
         "_xlsm_path",
@@ -160,7 +161,6 @@ def load_macro_workbook(
             open_file_folder(_xlsm_path)
     else:
         open_file_folder(_latest_file.replace("/", "\\"))
-
 
 
 ## clean_merge
@@ -625,23 +625,6 @@ def pass_dict_to_transform(df, parameter_dict):
 
     # Call transform_data with the extracted parameters
     return transform_data(df, x=x_param, y=y_param, z=z_param, value=value_param)
-
-
-## scan_destination
-def scan_destination(location_to_scan, ext):
-    scan = []
-    for i in glob.iglob(rf"{location_to_scan}\**\*{ext}".format(ext), recursive=True):
-        scan.append(i)
-    if len(scan) > 0:
-        scan = pd.DataFrame(scan).rename(columns={0: "unc"})
-        scan["filename"] = scan["unc"].apply(lambda row: Path(row).name)
-        scan["ext"] = scan["unc"].apply(
-            lambda row: os.path.splitext(os.path.basename(row))[1]
-        )
-        scan["chart_hash"] = scan.filename.str.rsplit(".", expand=True, n=0)[0]
-    else:
-        scan = pd.DataFrame({"filename": ""}, index=([0]))
-    return scan
 
 
 def transform_data_explore(df, _colors_file, override=None):
