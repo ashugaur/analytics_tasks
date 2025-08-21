@@ -11,7 +11,7 @@ from analytics_tasks.automate_office.build_explore import (
 from analytics_tasks.automate_office.build_batch import (
     transform_data,
 )
-from analytics_tasks.utils.functions import open_file_folder
+from analytics_tasks_utils.os_functions import open_file_folder
 
 
 ## Project folder (at_dir: analytics_tasks directoary)
@@ -32,16 +32,21 @@ load_macro_workbook(
 )
 
 ## Get data from clipboard
-open_file_folder(_visual_library_dir / "change/xyv_multiline.csv") # Copy content of this file
+open_file_folder(
+    _visual_library_dir / "change/xyv_multiline.csv"
+)  # Copy content of this file
 df = pd.read_clipboard()
 df.head()
 
 
 ## Assign x, y, z variables (refer visual library)
-df = transform_data(df, x=["days_on_therapy"], y=["brand"], value=["value"])
-df.head()
+# dft = transform_data(df, x=["days_on_therapy"], y=["brand"], value=["value"], y_override={'Drug A': 'Drug A ®', 'Drug B': 'Drug B ®'}) #Check override
+dft = transform_data(df, x=["days_on_therapy"], y=["brand"], value=["value"])
+dft.head()
 
 
 ## Run
 # open_file_folder(_colors_file)
-transform_data_explore(df, _colors_file).to_clipboard(index=False) # Macro: `xyv_multiline`
+transform_data_explore(df, _colors_file).to_clipboard(
+    index=False
+)  # Macro: `xyv_multiline`

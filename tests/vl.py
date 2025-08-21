@@ -2,7 +2,7 @@
 
 ## Dependencies
 from pathlib import Path
-from analytics_tasks.utils.functions import open_file_folder
+from analytics_tasks_utils.os_functions import open_file_folder
 from analytics_tasks.visual_library.build import lib_refs_vl, copy_gallery_folder
 from analytics_tasks.visual_library.visual_library_demo import create_site
 

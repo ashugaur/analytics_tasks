@@ -9,6 +9,7 @@ Keywords: automation,analytics,search,file search,indexing,text mining,presentat
 Requires-Python: >=3.11
 Description-Content-Type: text/markdown
 License-File: LICENSE.md
+Requires-Dist: analytics-tasks-utils
 Requires-Dist: art>=6.5
 Requires-Dist: bs4>=0.0.2
 Requires-Dist: docx>=0.2.4

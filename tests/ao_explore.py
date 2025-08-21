@@ -11,7 +11,7 @@ from analytics_tasks.automate_office.build_explore import (
 from analytics_tasks.automate_office.build_batch import (
     transform_data,
 )
-from analytics_tasks.utils.functions import open_file_folder
+from analytics_tasks_utils.os_functions import open_file_folder
 
 
 ## Project folder (at_dir: analytics_tasks directoary)

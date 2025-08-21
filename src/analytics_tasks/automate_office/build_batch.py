@@ -22,8 +22,8 @@ import matplotlib.colors as mcolors
 from datetime import datetime, timezone
 from openpyxl.utils import get_column_letter
 import sys
-from analytics_tasks.utils.functions import log_start, log_end
-from analytics_tasks_utils.scanning import scan_destination
+from analytics_tasks_utils.controlling import log_start, log_end
+from analytics_tasks_utils.scanning import scan_dir
 
 
 ## 0. Assign global variables
@@ -1829,7 +1829,7 @@ def scan_python_functions_from_file_s(
     # print('NOTE: functions not written to documents site.')
 
     # scan folder
-    def scan_dir(location_to_scan):
+    def scan_dir_local(location_to_scan):
         global scan
         scan = []
         for i in glob.iglob(rf"{location_to_scan}\**\*", recursive=True):
@@ -1843,7 +1843,7 @@ def scan_python_functions_from_file_s(
         else:
             scan = pd.DataFrame({"filename": ""}, index=([0]))
 
-    scan_dir(_source)
+    scan_dir_local(_source)
 
     # flag files and folders
     for i in range(0, len(scan)):
@@ -2355,7 +2355,7 @@ def macro_baseline(_control, _xlsm_path, _visual_library_dir, universal_chart_el
     _control_xlm_initial_len = len(_control_xlm)
 
     ## Scan drive
-    scan = scan_destination(_visual_library_dir, ".bas")
+    scan = scan_dir(_visual_library_dir, ".bas")
 
     ## Identify relevant files
     _control_xlm = pd.merge(_control_xlm, scan, how="left", on=["chart_hash"])[
@@ -2884,7 +2884,10 @@ def transform_data(df, x=None, y=None, z=None, value=None, y_override=None):
 
         # Handle y override
         if y_override:
-            result_df["y"] = y_override
+            if not isinstance(y_override, dict):
+                raise ValueError("y_override must be a dictionary mapping original 'y' values to new values.")
+            # Replace 'y' column values based on the dictionary
+            result_df["y"] = result_df["y"].map(y_override).fillna(result_df["y"])
 
         # Handle z column(s) renaming
         if z:

@@ -5,6 +5,7 @@ description = "Automation including file search and slide deck preparation."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "analytics-tasks-utils",
     "art>=6.5",
     "bs4>=0.0.2",
     "docx>=0.2.4",
@@ -50,6 +51,9 @@ include-package-data = true
 
 [tool.pytest.ini_options]
 pythonpath = "src"
+
+[tool.uv.sources]
+analytics-tasks-utils = { path = "../analytics_tasks_utils/dist/analytics_tasks_utils-0.1.0-py3-none-any.whl" }
 
 [project.urls]
 homepage = "https://ashugaur.github.io/analytics_tasks/"

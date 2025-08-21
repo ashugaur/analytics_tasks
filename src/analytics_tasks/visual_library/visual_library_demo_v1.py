@@ -1,8 +1,8 @@
-# %% Visual library demo with fixed sidebar TOC
-
 ## Dependencies
 from pathlib import Path
 from collections import defaultdict
+import csv
+import json
 
 
 ## create_site
@@ -12,6 +12,7 @@ def create_site(
     page_color="#bb6e6e",
     toc_color="#007bff",
     toc_bg_color="rgba(255, 255, 255, 0.9)",
+    modal_background_color = "rgba(212, 188, 150, 0.5)",
     image_extensions=[
         ".jpg",
         ".jpeg",
@@ -28,7 +29,7 @@ def create_site(
 ):
     """
     Automatically generates an HTML gallery page by scanning a folder structure.
-    Now with a fixed sidebar table of contents.
+    Now with a fixed sidebar table of contents and CSV hover preview.
 
     Args:
         folder_to_scan (str): Path to the folder containing subfolders with images and related files
@@ -60,6 +61,34 @@ def create_site(
         ".css": ("css", "#20c997"),
     }
 
+    def read_csv_preview(file_path, max_rows=5):
+        """Read the first few rows of a CSV file for preview"""
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                # Try to detect delimiter
+                sample = f.read(1024)
+                f.seek(0)
+                
+                sniffer = csv.Sniffer()
+                delimiter = ','
+                try:
+                    delimiter = sniffer.sniff(sample).delimiter
+                except Exception:
+                    delimiter = ','
+                
+                reader = csv.reader(f, delimiter=delimiter)
+                rows = []
+                for i, row in enumerate(reader):
+                    if i >= max_rows:
+                        break
+                    # Limit cell content length for display
+                    row = [str(cell)[:50] + '...' if len(str(cell)) > 50 else str(cell) for cell in row]
+                    rows.append(row)
+                
+                return rows
+        except Exception as e:
+            return [["Error reading file:", str(e)]]
+
     def scan_folder(folder_path):
         """Scan folder and organize files by base name"""
         folder_path = Path(folder_path)
@@ -67,6 +96,7 @@ def create_site(
             raise FileNotFoundError(f"Folder '{folder_path}' does not exist")
 
         gallery_data = {}
+        csv_previews = {}  # Store CSV preview data
 
         # Scan each subfolder
         for subfolder in folder_path.iterdir():
@@ -81,15 +111,18 @@ def create_site(
                 if file_path.is_file():
                     basename = file_path.stem
                     extension = file_path.suffix.lower()
-                    files_by_basename[basename].append(
-                        {
-                            "name": file_path.name,
-                            "extension": extension,
-                            "path": str(file_path.relative_to(folder_path)).replace(
-                                "\\", "/"
-                            ),
-                        }
-                    )
+                    file_info = {
+                        "name": file_path.name,
+                        "extension": extension,
+                        "path": str(file_path.relative_to(folder_path)).replace("\\", "/"),
+                    }
+                    
+                    # Generate CSV preview if it's a CSV file
+                    if extension == '.csv':
+                        csv_data = read_csv_preview(file_path)
+                        csv_previews[file_info["path"]] = csv_data
+                    
+                    files_by_basename[basename].append(file_info)
 
             # Process each group of files
             gallery_items = []
@@ -126,13 +159,12 @@ def create_site(
             if gallery_items:
                 # Sort items by basename for consistent ordering
                 gallery_items.sort(key=lambda x: x["basename"])
-                # gallery_items.sort(key=lambda x: image_extensions.index(x["image"]["extension"]))
                 gallery_data[subfolder_name] = gallery_items
 
-        return gallery_data
+        return gallery_data, csv_previews
 
-    def generate_html(gallery_data, page_color, toc_color, toc_bg_color):
-        """Generate HTML content with fixed sidebar TOC"""
+    def generate_html(gallery_data, csv_previews, page_color, toc_color, toc_bg_color, modal_background_color):
+        """Generate HTML content with fixed sidebar TOC and CSV preview"""
 
         html_template = f"""<!doctype html>
 <html lang="en">
@@ -175,7 +207,7 @@ def create_site(
             color: {toc_color};
             margin-bottom: 20px;
             text-align: center;
-            border-bottom: 2px solid {toc_color};
+            border-bottom: 1px solid {toc_color};
             padding-bottom: 10px;
         }}
 
@@ -188,10 +220,10 @@ def create_site(
         .toc-link {{
             color: {toc_color};
             text-decoration: none;
-            padding: 10px 15px;
+            # padding: 10px 15px;
             border-radius: 6px;
-            background-color: rgba({int(toc_color[1:3], 16)}, {int(toc_color[3:5], 16)}, {int(toc_color[5:7], 16)}, 0.1);
-            transition: all 0.1s ease;
+            # background-color: rgba({int(toc_color[1:3], 16)}, {int(toc_color[3:5], 16)}, {int(toc_color[5:7], 16)}, 0.1);
+            # transition: all 0.1s ease;
             font-size: 14px;
             border-left: 3px solid transparent;
             display: block;
@@ -205,30 +237,30 @@ def create_site(
             transform: translateX(5px);
         }}
 
-        .toc-link.active {{
-            background-color: {toc_color};
-            color: {page_color};
-            border-left-color: white;
-        }}
+        # .toc-link.active {{
+        #     background-color: {toc_color};
+        #     color: {page_color};
+        #     border-left-color: white;
+        # }}
 
         /* Toggle button for mobile */
-        .toc-toggle {{
-            display: none;
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 1001;
-            background-color: {toc_color};
-            color: {page_color};
-            border: none;
-            padding: 10px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-        }}
+        # .toc-toggle {{
+        #     display: none;
+        #     position: fixed;
+        #     top: 20px;
+        #     left: 20px;
+        #     z-index: 1001;
+        #     background-color: {toc_color};
+        #     color: {page_color};
+        #     border: none;
+        #     padding: 10px 15px;
+        #     border-radius: 6px;
+        #     cursor: pointer;
+        #     font-size: 16px;
+        # }}
 
         .toc-toggle:hover {{
-            opacity: 0.3;
+            opacity: 0.4;
         }}
 
         /* Main content area */
@@ -239,7 +271,7 @@ def create_site(
 
         .gallery-container {{
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 10px;
             padding: 10px;
             max-width: 1200px;
@@ -265,7 +297,7 @@ def create_site(
         .image-container {{
             position: relative;
             width: 100%;
-            height: 112px;
+            # height: 160px;
             cursor: pointer;
         }}
 
@@ -279,7 +311,7 @@ def create_site(
         .image-caption {{
             padding: 8px 10px;
             background-color: {page_color};
-            border-bottom: 1px solid #e0e0e0;
+            # border-bottom: 1px solid {toc_color};
             font-size: 12px;
             color: {toc_color};
             text-align: center;
@@ -302,10 +334,70 @@ def create_site(
             border-radius: 4px;
             font-size: 12px;
             transition: background-color 0.3s ease;
+            position: relative;
         }}
 
         .file-link:hover {{
-            opacity: 0.5;
+            opacity: 0.9;
+        }}
+
+        /* CSV Preview Tooltip */
+        .csv-preview {{
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 100%;
+            transform: translateX(-35%);
+            background-color: {page_color};
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1500;
+            max-width: 600px;
+            max-height: 500px;
+            overflow: auto;
+            margin-bottom: 5px;
+        }}
+
+        .csv-preview table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            font-family: monospace;
+        }}
+
+        .csv-preview th,
+        .csv-preview td {{
+            border: 1px solid #ddd;
+            padding: 4px 8px;
+            text-align: left;
+            max-width: 75px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            background-color: {page_color};
+        }}
+
+        .csv-preview th {{
+            background-color: {page_color};
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            color: {toc_color}
+        }}
+
+        .csv-preview .preview-title {{
+            padding: 8px;
+            background-color: {page_color};
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+            font-size: 12px;
+            color: {toc_color};
+        }}
+
+        /* Show CSV preview on hover */
+        .file-link.csv:hover .csv-preview {{
+            display: block;
         }}
 
         /* File type specific colors */"""
@@ -335,8 +427,8 @@ def create_site(
             max-width: 90vw;
             max-height: 90vh;
             margin: 5% auto;
-            padding: 20px;
-            background-color: rgba(212, 188, 150, 0.5);
+            padding: 10px;
+            background-color: {modal_background_color};
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         }}
@@ -401,6 +493,12 @@ def create_site(
             .gallery-item {{
                 margin-bottom: 20px;
             }}
+
+            .csv-preview {{
+                max-width: 300px;
+                left: 0;
+                transform: none;
+            }}
         }}
 
         /* Scrollbar styling for webkit browsers */
@@ -421,9 +519,29 @@ def create_site(
         .toc-sidebar::-webkit-scrollbar-thumb:hover {{
             background: #a8a8a8;
         }}
+
+        .csv-preview::-webkit-scrollbar {{
+            width: 6px;
+            height: 6px;
+        }}
+
+        .csv-preview::-webkit-scrollbar-track {{
+            background: #f1f1f1;
+        }}
+
+        .csv-preview::-webkit-scrollbar-thumb {{
+            background: #c1c1c1;
+            border-radius: 3px;
+        }}
     </style>
 </head>
 <body>"""
+
+        # Embed CSV data as JavaScript
+        html_template += f"""
+    <script>
+        const csvData = {json.dumps(csv_previews)};
+    </script>"""
 
         # Generate Mobile Toggle Button
         html_template += """
@@ -489,7 +607,16 @@ def create_site(
                             display_name = file_info["name"]
 
                         html_template += f'''
-                    <a href="{file_info["path"]}" class="file-link {class_name}" target="_blank">{display_name}</a>'''
+                    <a href="{file_info["path"]}" class="file-link {class_name}" target="_blank" data-file-path="{file_info["path"]}">{display_name}'''
+                        
+                        # Add CSV preview div if it's a CSV file
+                        if ext == '.csv' and file_info["path"] in csv_previews:
+                            html_template += '''
+                        <div class="csv-preview">
+                            <div class="csv-table-container"></div>
+                        </div>'''
+                        
+                        html_template += '</a>'
 
                     html_template += """
                 </div>"""
@@ -520,6 +647,9 @@ def create_site(
             const imageContainers = document.querySelectorAll('.image-container');
             const modalImage = document.getElementById('modal-image');
             const tocLinks = document.querySelectorAll('.toc-link');
+
+            // Initialize CSV previews
+            initializeCsvPreviews();
 
             // Open modal on image click
             imageContainers.forEach(container => {
@@ -583,6 +713,39 @@ def create_site(
             updateActiveSection(); // Initial call
         });
 
+        // Initialize CSV preview functionality
+        function initializeCsvPreviews() {
+            const csvLinks = document.querySelectorAll('.file-link.csv[data-file-path]');
+            
+            csvLinks.forEach(link => {
+                const filePath = link.getAttribute('data-file-path');
+                const previewDiv = link.querySelector('.csv-preview .csv-table-container');
+                
+                if (previewDiv && csvData[filePath]) {
+                    const csvRows = csvData[filePath];
+                    
+                    // Create table
+                    const table = document.createElement('table');
+                    
+                    // Add rows
+                    csvRows.forEach((row, index) => {
+                        const tr = document.createElement('tr');
+                        
+                        row.forEach(cell => {
+                            const td = document.createElement(index === 0 ? 'th' : 'td');
+                            td.textContent = cell;
+                            td.title = cell; // Show full content on hover
+                            tr.appendChild(td);
+                        });
+                        
+                        table.appendChild(tr);
+                    });
+                    
+                    previewDiv.appendChild(table);
+                }
+            });
+        }
+
         // Mobile sidebar toggle functions
         function toggleSidebar() {
             const sidebar = document.getElementById('tocSidebar');
@@ -616,7 +779,7 @@ def create_site(
     try:
         # Scan the folder
         print(f"Scanning folder: {folder_to_scan}")
-        gallery_data = scan_folder(folder_to_scan)
+        gallery_data, csv_previews = scan_folder(folder_to_scan)
 
         if not gallery_data:
             print("No image files found in subfolders!")
@@ -624,7 +787,7 @@ def create_site(
 
         # Generate HTML
         print("Generating HTML...")
-        html_content = generate_html(gallery_data, page_color, toc_color, toc_bg_color)
+        html_content = generate_html(gallery_data, csv_previews, page_color, toc_color, toc_bg_color, modal_background_color)
 
         # Write to file
         output_path = Path(folder_to_scan) / "visual_library.html"
@@ -633,9 +796,11 @@ def create_site(
 
         # Print summary
         total_items = sum(len(items) for items in gallery_data.values())
+        csv_count = len(csv_previews)
         print("Gallery created successfully!")
         print(f"- {len(gallery_data)} categories")
         print(f"- {total_items} image sets")
+        print(f"- {csv_count} CSV files with preview")
         print(f"- Output: {output_path}")
 
         return str(output_path)

@@ -34,11 +34,11 @@ src/analytics_tasks/ml/text/__init__.py
 src/analytics_tasks/ml/text/info_schema_parser/__init__.py
 src/analytics_tasks/utils/__init__.py
 src/analytics_tasks/utils/fakedatagenerator.py
-src/analytics_tasks/utils/functions.py
 src/analytics_tasks/visual_library/__init__.py
 src/analytics_tasks/visual_library/build.py
 src/analytics_tasks/visual_library/visual_library_demo.py
 src/analytics_tasks/visual_library/visual_library_demo_old.py
+src/analytics_tasks/visual_library/visual_library_demo_v1.py
 src/analytics_tasks/visual_library/gallery/____settings/colors.xlsm
 src/analytics_tasks/visual_library/gallery/change/xyv_multiline.bas
 src/analytics_tasks/visual_library/gallery/change/xyv_multiline.csv

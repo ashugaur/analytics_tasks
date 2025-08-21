@@ -12,7 +12,8 @@ from analytics_tasks.automate_office.build_batch import (
     execute_pptx_pipeline,
     draw_charts,
 )
-from analytics_tasks.utils.functions import open_file_folder, round_columns
+from analytics_tasks_utils.os_functions import open_file_folder
+from analytics_tasks_utils.formatting import round_columns
 
 
 ## Project folder

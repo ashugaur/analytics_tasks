@@ -18,7 +18,7 @@ import glob
 import matplotlib.colors as mcolors
 import ast
 from analytics_tasks.automate_office.build_batch import transform_data
-from analytics_tasks_utils.scanning import scan_destination
+from analytics_tasks_utils.scanning import scan_dir
 
 ## Assign folder or file names
 folder_dt = datetime.now(timezone.utc).strftime("%Y%m%d")
@@ -139,7 +139,7 @@ def load_macro_workbook(
             print("NOTE: Normal run.")
 
         # exec(open(_ao + r"\code\functions\create_macro_baseline_explore.py").read())
-        scan = scan_destination(visual_library_dir, ".bas")
+        scan = scan_dir(visual_library_dir, ".bas")
 
         if len(scan) <= 1:
             print(

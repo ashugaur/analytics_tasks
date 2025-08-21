@@ -31,7 +31,7 @@ from dateutil.parser import parse
 from email.utils import parseaddr
 from datetime import datetime, timezone
 import concurrent.futures
-from analytics_tasks.utils.functions import timer_start, timer_end
+from analytics_tasks_utils.controlling import timer_start, timer_end
 
 import os
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
