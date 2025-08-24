@@ -1,4 +1,4 @@
-Sub xyv_multiline()
+Sub line_multi_xstr_ypct()
     Dim ws As Worksheet
     Dim chartObj As ChartObject
     Dim chart As chart
@@ -59,7 +59,7 @@ Sub xyv_multiline()
     averageEntryWidth = 65 ' Adjusted legend width scaling
     series_weight = 1.2
     special_series_weight = 1.9     ' Thicker line weight for the special series
-    special_series_name = "Drug A"  ' Name of the series to highlight
+    special_series_name = " "  ' Name of the series to highlight
     marker_size = 6
     chart_width = 560
     chart_height = 280

@@ -65,7 +65,7 @@ def lib_refs_ao_batch(at_dir, report_name=None):
 
     # Main directories
     _automate_office_dir = at_dir / "automate_office"
-    _visual_library_dir = at_dir / "visual_library"
+    
     _input_dir = _automate_office_dir / "input"
     _input_data_dir = _automate_office_dir / "input/data"
     _input_img_dir = _automate_office_dir / "input/img"
@@ -81,7 +81,7 @@ def lib_refs_ao_batch(at_dir, report_name=None):
     # File folder reference post demo copy
     _control_file = _automate_office_dir / "input/____control.xlsm"
     _control_file_worksheet = "calibration"
-    _colors_file = _visual_library_dir / "____settings/colors.xlsm"
+
     _image_dir = _automate_office_dir / "input/img/event_1"
     _chart_data_dir = _automate_office_dir / "input/data/event_1"
     _template_path = _automate_office_dir / "input/templates/template_v2.potm"
@@ -108,10 +108,8 @@ def lib_refs_ao_batch(at_dir, report_name=None):
         / f"output/learn/lc_{(Path(_output_pptm).name).rsplit('.')[0]}.xlsx"
     )
 
-    _colors = my_colors(_colors_file)
-
     Path(_automate_office_dir).mkdir(parents=True, exist_ok=True)
-    Path(_visual_library_dir).mkdir(parents=True, exist_ok=True)
+    
     Path(_input_dir).mkdir(parents=True, exist_ok=True)
     Path(_input_data_dir).mkdir(parents=True, exist_ok=True)
     Path(_input_img_dir).mkdir(parents=True, exist_ok=True)
@@ -127,6 +125,18 @@ def lib_refs_ao_batch(at_dir, report_name=None):
     close_powerpoint_excel()
 
     log_start(_logs_dir)
+
+    try:
+        _visual_library_dir = at_dir / "visual_library"
+        _colors_file = _visual_library_dir / "____settings/colors.xlsm"
+        _colors = my_colors(_colors_file)
+        Path(_visual_library_dir).mkdir(parents=True, exist_ok=True)
+
+    except Exception:
+        print(f"File not found: {_colors_file}. Returning an empty DataFrame.")
+        _colors_file = ""
+        _colors = pd.DataFrame()
+        _visual_library_dir = ''
 
     return (
         _colors_file,
@@ -550,14 +560,10 @@ def create_excel_charts_batch(
                     except UnicodeDecodeError:
                         current_df = pd.read_csv(chart_data_path, encoding="cp1252")
                     current_df = pass_dict_to_transform(current_df, chart_data_dict)
-                    _ct_calc, _ct_default = determine_columns(current_df)
-                    if _ct_calc == "y":
-                        pass
-                    else:
-                        print(f"Reference: Auto color column is {_ct_calc}.")
-                    current_df = clean_merge(
-                        current_df, _colors, df1_join_col=_ct_calc
-                    ).reset_index(drop=True)
+                    current_df = pass_dict_to_transform_batch(
+                        current_df, _colors, chart_data_dict
+                    )
+
                 else:
                     print("\nNOTE: No CSV file, checking for available dataframe.")
                     # First try to use the dataframe we found in globals
@@ -568,20 +574,17 @@ def create_excel_charts_batch(
                         )  # Make a copy to avoid modifying original
                         print(current_df.head(3))
                         current_df = pass_dict_to_transform(current_df, chart_data_dict)
-                        _ct_calc, _ct_default = determine_columns(current_df)
-                        if _ct_calc == "y":
-                            pass
-                        else:
-                            print(f"Reference: Auto color column is {_ct_calc}.")
-                        current_df = clean_merge(
-                            current_df, _colors, df1_join_col=_ct_calc
-                        ).reset_index(drop=True)
+                        current_df = pass_dict_to_transform_batch(
+                            current_df, _colors, chart_data_dict
+                        )
+
                     else:
                         # As a fallback, see if we can find df in the caller's frame
                         caller_frame = inspect.currentframe().f_back
                         if caller_frame and "df" in caller_frame.f_locals:
                             print("Found df in caller's namespace.")
                             current_df = caller_frame.f_locals["df"].copy()
+
                             print(current_df.head(3))
                             _ct_calc, _ct_default = determine_columns(current_df)
                             if _ct_calc == "y":
@@ -1681,14 +1684,19 @@ def extract_text_from_pptx(presentation_path, excel_output_path):
 
 
 def my_colors(_colors_file):
-    df_colors = pd.read_excel(_colors_file, sheet_name="colors")
-    df_colors = df_colors.sort_values(by=["Mode", "Tool", "Usage"]).reset_index(
-        drop=True
-    )
-    df_colors = fill_missing_colors(df_colors)
-    df_colors.columns = df_colors.columns.str.lower()
-    _colors = df_colors.rename(columns={"usage": "y"})[["y", "color_hex", "color_rgb"]]
-
+    """User defined colors."""
+    try:
+        # Treat color file
+        df_colors = pd.read_excel(_colors_file, sheet_name="colors")
+        df_colors = df_colors.sort_values(by=["Mode", "Tool", "Usage"]).reset_index(
+            drop=True
+        )
+        df_colors = fill_missing_colors(df_colors)
+        df_colors.columns = df_colors.columns.str.lower()
+        _colors = df_colors.rename(columns={"usage": "y"})[["y", "color_hex", "color_rgb"]]
+    except FileNotFoundError:
+        print(f"File not found: {_colors_file}. Returning an empty DataFrame.")
+        _colors = pd.DataFrame()
     return _colors
 
 
@@ -2436,6 +2444,41 @@ def pass_dict_to_transform(df, parameter_dict):
     )
 
 
+def pass_dict_to_transform_batch(df, _colors, parameter_dict):
+    """
+    Takes a DataFrame and a dictionary of parameters, then passes the relevant
+    parameters to the transform_data function.
+
+    Args:
+        df: The DataFrame to transform
+        parameter_dict: Dictionary containing parameter names and values
+
+    Returns:
+        Result of transform_data with the appropriate parameters
+    """
+    # Extract the parameters from the dictionary
+    # For list values, take the first item if it exists
+    y_override_col_param = (
+        parameter_dict.get("y_override_col", [None])[0]
+        if isinstance(parameter_dict.get("y_override_col", None), list)
+        else parameter_dict.get("y_override_col")
+    )
+
+    y_override_color_param = (
+        parameter_dict.get("y_override_color", [None])[0]
+        if isinstance(parameter_dict.get("y_override_color", None), list)
+        else parameter_dict.get("y_override_color")
+    )
+
+    # Call transform_data with the extracted parameters
+    return transform_data_batch(
+        df,
+        _colors,
+        y_override_col=y_override_col_param,
+        y_override_color=y_override_color_param,
+    )
+
+
 def ppt_learn(
     _master_json_path,
     _output_pptm,
@@ -2624,7 +2667,7 @@ def python_override(
                 print(f"READING: {chart_data_path}")
                 current_df = pd.read_csv(chart_data_path)
                 current_df = pass_dict_to_transform(current_df, chart_data_dict)
-                current_df = transform_data_batch(current_df, _colors_file)
+                current_df = transform_data_batch_v1(current_df, _colors_file)
 
             # Run function with parameters
             run_dynamic_function(chart_hash, chart_data_dict, current_df)
@@ -2678,7 +2721,7 @@ def run_dynamic_function(function_name, params_dict, df, globals_dict=None):
         func = globals_dict[function_name]
     else:
         raise ValueError(
-            f"Function '{function_name}' not found in the provided namespace"
+            f"Function '{function_name}' not found in the provided namespace."
         )
 
     # Get the function's parameters using inspect
@@ -2811,9 +2854,9 @@ def transform_data(df, x=None, y=None, z=None, value=None, y_override=None):
         return None
 
 
-def transform_data_batch(df, _colors_file, override_xy=None):
+def transform_data_batch_v1(df, _colors_file, y_override_col=None):
     """Transpose data to universal xyzv data structure."""
-    _ct_calc, _ct_default = determine_columns(df, override=override_xy)
+    _ct_calc, _ct_default = determine_columns(df, override=y_override_col)
 
     # Treat color file
     df_colors = pd.read_excel(_colors_file, sheet_name="colors")
@@ -2828,5 +2871,43 @@ def transform_data_batch(df, _colors_file, override_xy=None):
 
     print("\nReport: Data transposed")
     df.head()
+
+    return df
+
+
+def transform_data_batch(df, _colors, y_override_col=None, y_override_color=None):
+    """Apply colors and exceptions. Using default 'y' column for now."""
+    _ct_calc, _ct_default = determine_columns(df, override=y_override_col)
+
+    # Apply color overrides if provided
+    if y_override_color is not None:
+        for y_value, hex_color in y_override_color.items():
+            # Update color_hex for matching y values
+            mask = _colors["y"] == y_value
+            _colors.loc[mask, "color_hex"] = hex_color
+
+            # Convert hex to RGB if needed (assuming you have a function for this)
+            # If you don't have a hex_to_rgb function, you can add one or remove this line
+            try:
+                # Simple hex to RGB conversion
+                hex_color = hex_color.lstrip("#")
+                rgb = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+                rgb_string = f"{rgb[0]}, {rgb[1]}, {rgb[2]}"
+                _colors.loc[mask, "color_rgb"] = rgb_string
+            except ValueError:
+                # If hex conversion fails, keep original RGB value
+                pass
+
+    df = clean_merge(df, _colors, df1_join_col=_ct_default, how="left").reset_index(
+        drop=True
+    )
+
+    if _ct_default == "y":
+        pass
+    else:
+        print(f"Reference: Auto color column is {_ct_calc}.")
+
+    print("\nReport: Data transposed")
+    # df.head()
 
     return df

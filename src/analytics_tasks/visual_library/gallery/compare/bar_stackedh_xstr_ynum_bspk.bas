@@ -1,4 +1,4 @@
-Sub xy_hr_bar()
+Sub bar_stackedh_xstr_ynum_bspk()
     Dim ws As Worksheet
     Dim chartObj As ChartObject
     Dim chart As chart
@@ -41,7 +41,7 @@ Sub xy_hr_bar()
     chart_height = 30
     
     ' Set the chart title with dynamic period
-    chartTitle = "xy_hr_bar : " & studyPeriod & " months"
+    chartTitle = "bar_horizontal_xstr_ynum_bespoke : " & studyPeriod & " months"
 
     '#--------------------------------------------------------------------------
     '#··· Calibration end                                                    ···

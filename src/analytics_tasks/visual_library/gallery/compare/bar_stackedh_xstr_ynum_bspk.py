@@ -1,3 +1,6 @@
+# %% bar_stackedh_xstr_yum_kbspk
+
+## About
 """
 transform_data(df, x=['drug'], y=['staytime'])
 transform_data(df, x=['drug'], y=['staytime'], z=['pc'])
@@ -9,7 +12,6 @@ Drug A 5
 """
 
 
-# %% xy_hr_bar
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -74,7 +76,7 @@ for i, (bar, value) in enumerate(zip(bars1, values)):
             color='white', fontweight='bold')
 
 # Title - left aligned
-ax.set_title('xy_hr_bar', fontsize=10, loc='left')
+ax.set_title('bar_stackedh_xstr_yum_kbspk', fontsize=10, loc='left')
 
 # Remove ALL x-axis elements completely
 ax.set_xticks([])
@@ -98,10 +100,10 @@ plt.tight_layout()
 # Show the plot
 #plt.show()
 
-chart_out = _vl + r'\compare\xy_hr_bar'
+chart_out = _vl + r'\compare\bar_stackedh_xstr_yum_kbspk'
 plt.savefig(chart_out+'.png')
 #plt.savefig(chart_out+'.svg')
 #sp.Popen(chart_out, shell=True) #open file
 #plt.show()
 
-#exec(open(_vl+r'\compare\xy_hr_bar.py').read())
+#exec(open(_vl+r'\compare\bar_stackedh_xstr_yum_kbspk.py').read())

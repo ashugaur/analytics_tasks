@@ -11,6 +11,7 @@ from analytics_tasks.automate_office.build_batch import (
     initialize_batch_globals,
     execute_pptx_pipeline,
     draw_charts,
+    my_colors
 )
 from analytics_tasks_utils.os_functions import open_file_folder
 from analytics_tasks_utils.formatting import round_columns
@@ -20,8 +21,17 @@ from analytics_tasks_utils.formatting import round_columns
 at_dir = Path("C:/analytics_tasks")
 
 
+## Override default
+""" 
+_visual_library_dir = _vl
+_colors_file = _vl / "____settings/colors.xlsm"
+_colors = my_colors(_colors_file)
+ """
+
+
 ## Assign file/folder references [Shorter: initialize_batch_globals(at_dir)]
 initialize_batch_globals(at_dir)
+# initialize_batch_globals(at_dir, _colors_file=_colors_file)
 
 
 ## Browse or edit input parameters
@@ -101,3 +111,9 @@ _control_xlm, success, df_known_errors = draw_charts(
 
 ## Open processed file
 open_file_folder(_output_pptm)
+
+
+## Self
+"""
+exec(open('examples/ao_batch.py').read())
+"""

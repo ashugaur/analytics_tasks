@@ -12,6 +12,7 @@ from analytics_tasks.automate_office.build_batch import (
     transform_data,
     determine_columns,
     clean_merge,
+    my_colors,
 )
 from analytics_tasks_utils.scanning import scan_dir
 from analytics_tasks_utils.imputing import fill_missing_colors
@@ -525,7 +526,7 @@ def pass_dict_to_transform_del(df, parameter_dict):
     return transform_data(df, x=x_param, y=y_param, z=z_param, value=value_param)
 
 
-def transform_data_explore_old(df, _colors_file, override_xy=None):
+def transform_data_explore_v1(df, _colors_file, override_xy=None):
     """Transpose data to universal xyzv data structure."""
     _ct_calc, _ct_default = determine_columns(df, override=override_xy)
 
@@ -548,9 +549,11 @@ def transform_data_explore_old(df, _colors_file, override_xy=None):
     return df
 
 
-def transform_data_explore(df, _colors_file, override_xy=None, y_override_color=None):
+def transform_data_explore_v1(
+    df, _colors_file, y_override_col=None, y_override_color=None
+):
     """Transpose data to universal xyzv data structure."""
-    _ct_calc, _ct_default = determine_columns(df, override=override_xy)
+    _ct_calc, _ct_default = determine_columns(df, override=y_override_col)
 
     # Treat color file
     df_colors = pd.read_excel(_colors_file, sheet_name="colors")
@@ -560,6 +563,43 @@ def transform_data_explore(df, _colors_file, override_xy=None, y_override_color=
     df_colors = fill_missing_colors(df_colors)
     df_colors.columns = df_colors.columns.str.lower()
     _colors = df_colors.rename(columns={"usage": "y"})[["y", "color_hex", "color_rgb"]]
+
+    # Apply color overrides if provided
+    if y_override_color is not None:
+        for y_value, hex_color in y_override_color.items():
+            # Update color_hex for matching y values
+            mask = _colors["y"] == y_value
+            _colors.loc[mask, "color_hex"] = hex_color
+
+            # Convert hex to RGB if needed (assuming you have a function for this)
+            # If you don't have a hex_to_rgb function, you can add one or remove this line
+            try:
+                # Simple hex to RGB conversion
+                hex_color = hex_color.lstrip("#")
+                rgb = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+                rgb_string = f"{rgb[0]}, {rgb[1]}, {rgb[2]}"
+                _colors.loc[mask, "color_rgb"] = rgb_string
+            except ValueError:
+                # If hex conversion fails, keep original RGB value
+                pass
+
+    df = clean_merge(df, _colors, df1_join_col=_ct_calc).reset_index(drop=True)
+
+    print(
+        "\nReport: Transposed data copied to clipboard, paste it to report*.xlsm file and run relevant macro from visual library."
+    )
+    df.head()
+
+    return df
+
+
+def transform_data_explore(
+    df, _colors_file, y_override_col=None, y_override_color=None
+):
+    """Transpose data to universal xyzv data structure."""
+    _ct_calc, _ct_default = determine_columns(df, override=y_override_col)
+
+    _colors = my_colors(_colors_file)
 
     # Apply color overrides if provided
     if y_override_color is not None:

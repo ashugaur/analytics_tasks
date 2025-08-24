@@ -1,3 +1,6 @@
+# %% line_multi_xstr_ypct
+
+## About
 """
 transform_data(df, x=['days_on_therapy'], y=['brand'], value=['value'])
 
@@ -10,9 +13,7 @@ Drug A	0.51 	Day 120
 """
 
 
-# %% xyv_multiline
-
-## Simulation
+## Simulated staytime data
 
 import math
 import numpy as np
@@ -185,10 +186,10 @@ plt.tight_layout()
 # Show the plot
 #plt.show()
 
-chart_out = _vl + r'\change\xyv_multiline.png'
+chart_out = _vl + r'\change\line_multi_xstr_ypct.png'
 plt.savefig(chart_out)
 #sp.Popen(chart_out, shell=True) #open file
 #plt.show()
 
-#exec(open(_vl+r'\change\xyv_multiline.py').read())
+#exec(open(_vl+r'\change\line_multi_xstr_ypct.py').read())
 
