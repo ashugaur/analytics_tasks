@@ -1,7 +1,3 @@
-# %% Build
-
-
-## Dependencies
 import re
 import os
 import ast
@@ -17,16 +13,17 @@ import importlib.resources as pkg_resources
 from art import tprint
 import win32com.client
 from pathlib import Path
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 from datetime import datetime, timezone
 from openpyxl.utils import get_column_letter
 import sys
 from analytics_tasks_utils.controlling import log_start, log_end
 from analytics_tasks_utils.scanning import scan_dir
+from analytics_tasks_utils.imputing import fill_missing_colors
+
+folder_dt = datetime.now(timezone.utc).strftime("%Y%m%d")
+file_dt = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
 
-## 0. Assign global variables
 def initialize_batch_globals(at_dir):
     """Initialize global variables in the calling module"""
     # Get the calling module's globals
@@ -61,7 +58,6 @@ def initialize_batch_globals(at_dir):
         caller_globals[name] = value
 
 
-## 0. lib_refs_ao_batch
 def lib_refs_ao_batch(at_dir, report_name=None):
     """Assigns working libraries inside visual_library dir."""
 
@@ -155,7 +151,6 @@ def lib_refs_ao_batch(at_dir, report_name=None):
     )
 
 
-## 2. execute_pptx_pipeline
 def execute_pptx_pipeline(
     _control,
     scan_python_functions_from_file_s,
@@ -196,7 +191,6 @@ def execute_pptx_pipeline(
     return _control, _template_path
 
 
-## 3. draw_charts
 def draw_charts(
     _control,
     _xlsm_path,
@@ -252,7 +246,6 @@ def draw_charts(
     return _control_xlm, success, df_known_errors
 
 
-## adjust_colors
 def adjust_colors(universal_chart_elements, slide_master_text_elements):
     """
     Adjusts the colors in slide_master_text_elements based on the chartElementsColor
@@ -287,7 +280,6 @@ def adjust_colors(universal_chart_elements, slide_master_text_elements):
     return updated_slide_master_text_elements
 
 
-## apply_or_create_potm_colors
 def parse_rgb(rgb_string):
     match = re.search(r"RGB\((\d+),\s*(\d+),\s*(\d+)\)", rgb_string)
     if match:
@@ -421,13 +413,6 @@ def apply_or_create_potm_colors(
             ppt_app.Quit()
 
 
-## Assign folder or file names
-folder_dt = datetime.now(timezone.utc).strftime("%Y%m%d")
-file_dt = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-
-
-## Batch processing
-# copy_control_file
 def copy_control_file(control_file_path: str, output_file_path: str) -> str:
     """
     Copies the control file to a new location
@@ -480,7 +465,6 @@ def copy_control_file(control_file_path: str, output_file_path: str) -> str:
                 print(f"Error closing Excel: {e}")
 
 
-# create_excel_charts_batch
 def create_excel_charts_batch(
     control_df: pd.DataFrame,
     _colors: pd.DataFrame,
@@ -667,7 +651,6 @@ def create_excel_charts_batch(
                 print(f"⚠️ Error closing Excel: {e}")
 
 
-# export_to_powerpoint_batch
 def export_to_powerpoint_batch(
     control_df: pd.DataFrame,
     excel_file_path: str,
@@ -939,7 +922,6 @@ def export_to_powerpoint_batch(
         close_powerpoint_excel()
 
 
-## calibration
 def calibration(_control_file):
     _control = pd.read_excel(_control_file, sheet_name="calibration")
 
@@ -1039,7 +1021,6 @@ def calibration(_control_file):
     return _control
 
 
-## check_and_confirm_close_applications
 def check_and_confirm_close_applications():
     """
     Checks if Excel or PowerPoint processes are running, and prompts for confirmation only if they are.
@@ -1090,7 +1071,6 @@ def check_and_confirm_close_applications():
     return
 
 
-## clean_merge
 def clean_merge(df1, df2, df1_join_col="y", how="left"):
     result = pd.merge(df1, df2, left_on=df1_join_col, right_on="y", how=how)
     if df1_join_col != "y":
@@ -1100,7 +1080,6 @@ def clean_merge(df1, df2, df1_join_col="y", how="left"):
     return result
 
 
-## close_powerpoint_excel
 def close_powerpoint_excel():
     """Closes PowerPoint and Excel processes, even if they're stuck in the task manager."""
 
@@ -1151,7 +1130,6 @@ def close_powerpoint_excel():
             print(f"An unexpected error occurred: {e}")
 
 
-## combine_dataframes
 def combine_dataframes(elements, elements_master, txt, control, round_columns):
     # Merge _elements and _txt on 'element_name'
     elements_merged = elements.merge(
@@ -1199,7 +1177,6 @@ def combine_dataframes(elements, elements_master, txt, control, round_columns):
     return final_df, control_new
 
 
-## concatenate_chart_hashes
 def concatenate_chart_hashes(df):
     """
     Concatenates non-empty values in the 'chart_hash' column
@@ -1232,7 +1209,6 @@ def concatenate_chart_hashes(df):
     return df
 
 
-## Copy template
 def _copy_tree_no_overwrite(src, dst):
     """
     Helper function to copy a directory tree without overwriting existing files.
@@ -1335,7 +1311,6 @@ def copy_input_dir(destination_path):
         raise
 
 
-## create_or_apply_potm
 def create_or_apply_potm(_template_path, _output_pptm, _control):
     ppt_app = win32com.client.Dispatch("PowerPoint.Application")
     ppt_app.Visible = 1  # Make PowerPoint visible (optional)
@@ -1414,7 +1389,6 @@ def create_or_apply_potm(_template_path, _output_pptm, _control):
     print(f"Processed: {_output_pptm}")
 
 
-## delete_all_chart_placeholders
 def delete_all_chart_placeholders(presentation_path=None):
     close_powerpoint_excel()
 
@@ -1474,7 +1448,6 @@ def delete_all_chart_placeholders(presentation_path=None):
     log_end()
 
 
-## determine_columns
 def determine_columns(df, override=None):
     """
     Determines the preferred column and always returns 'y' as the second value.
@@ -1496,7 +1469,6 @@ def determine_columns(df, override=None):
     return "y", "y"
 
 
-## export_dfs_to_excel
 def export_dfs_to_excel(dfs, sheet_names, filename="output.xlsx"):
     """
     Exports a list of Pandas DataFrames to an Excel file, with each DataFrame
@@ -1544,7 +1516,6 @@ def export_dfs_to_excel(dfs, sheet_names, filename="output.xlsx"):
     print(f"DataFrames exported to {filename} successfully.", end="")
 
 
-## extract_master_pptx_to_json
 def extract_master_pptx_to_json(presentation_path, master_json_path):
     """Extracts elements from the Slide Master and saves them to JSON."""
 
@@ -1609,7 +1580,6 @@ def extract_master_pptx_to_json(presentation_path, master_json_path):
         json.dump(masters_data, master_file, indent=4)
 
 
-## extract_pptx_to_json
 def extract_pptx_to_json(presentation_path, slide_json_path):
     ppt_app = win32com.client.Dispatch("PowerPoint.Application")
     presentation = ppt_app.Presentations.Open(presentation_path, WithWindow=False)
@@ -1662,7 +1632,6 @@ def extract_pptx_to_json(presentation_path, slide_json_path):
         json.dump(slides_data, slide_file, indent=4)
 
 
-## extract_text_from_pptx
 def extract_text_from_pptx(presentation_path, excel_output_path):
     """Extracts element names, text, and slide numbers from PowerPoint (excluding charts) and saves to Excel."""
 
@@ -1711,55 +1680,6 @@ def extract_text_from_pptx(presentation_path, excel_output_path):
     df.to_excel(excel_output_path, index=False)
 
 
-## fill_missing_colors
-def fill_missing_colors(df: pd.DataFrame) -> pd.DataFrame:
-    def rgb_to_hex(rgb):
-        """Convert R, G, B values in 0-255 range to hex."""
-        if isinstance(rgb, (list, tuple)) and len(rgb) == 3:
-            rgb_norm = tuple(x / 255 for x in rgb)  # Normalize RGB values to 0-1
-            return mcolors.to_hex(rgb_norm)
-        return None
-
-    def hex_to_rgb(hex_code):
-        """Convert hex color to comma-separated R, G, B string in 0-255 range."""
-        if isinstance(hex_code, str) and hex_code.startswith("#"):
-            return ", ".join(str(int(x * 255)) for x in mcolors.to_rgb(hex_code))
-        return None
-
-    df = df.copy()
-
-    # Replace '.' with NaN using numpy where instead of deprecated replace method
-    df["color_hex"] = np.where(df["color_hex"] == ".", np.nan, df["color_hex"])
-    df["color_rgb"] = np.where(df["color_rgb"] == ".", np.nan, df["color_rgb"])
-
-    # Convert 'color_rgb' string tuples into comma-separated strings
-    df["color_rgb"] = df["color_rgb"].apply(
-        lambda x: ", ".join(map(str, ast.literal_eval(x)))
-        if isinstance(x, str) and x.startswith("(")
-        else x
-    )
-
-    # Explicitly cast 'color_rgb' column to 'object' dtype
-    df["color_rgb"] = df["color_rgb"].astype("object")
-
-    # Fill missing color_hex values using RGB conversion
-    df.loc[df["color_hex"].isna(), "color_hex"] = df.loc[
-        df["color_hex"].isna(), "color_rgb"
-    ].apply(
-        lambda x: rgb_to_hex(tuple(map(int, x.split(", "))))
-        if isinstance(x, str)
-        else None
-    )
-
-    # Fill missing color_rgb values using hex conversion
-    df.loc[df["color_rgb"].isna(), "color_rgb"] = df.loc[
-        df["color_rgb"].isna(), "color_hex"
-    ].apply(hex_to_rgb)
-
-    return df
-
-
-## my_colors
 def my_colors(_colors_file):
     df_colors = pd.read_excel(_colors_file, sheet_name="colors")
     df_colors = df_colors.sort_values(by=["Mode", "Tool", "Usage"]).reset_index(
@@ -1772,7 +1692,6 @@ def my_colors(_colors_file):
     return _colors
 
 
-## filter_chart_data_multiline
 def filter_chart_data_multiline(df, column_name):
     """Filters a DataFrame column for dictionary-like values."""
 
@@ -1787,13 +1706,11 @@ def filter_chart_data_multiline(df, column_name):
     return df[df[column_name].apply(check_braces)]
 
 
-## find_methods_in_python_file
-# source: https://stackoverflow.com/questions/58935006/iterate-over-directory-and-get-function-names-from-found-py-files  + GPT
-
-
 def find_methods_in_python_file(file_path):
-    """finds functions with python files"""
+    """finds functions with python files
 
+    source: https://stackoverflow.com/questions/58935006/iterate-over-directory-and-get-function-names-from-found-py-files  + GPT
+    """
     methods = []
     o = open(file_path, "r", encoding="utf-8")
     text = o.read()
@@ -1931,7 +1848,6 @@ def scan_python_functions_from_file_s(
             continue
 
 
-## get_actual_layout_name
 def get_actual_layout_name(slide):
     try:
         if hasattr(slide, "CustomLayout"):
@@ -1947,7 +1863,6 @@ def get_actual_layout_name(slide):
         return f"Error getting layout name: {e}"
 
 
-## get_latest_file
 def get_latest_file(directory):
     try:
         # Get a list of files with the prefix 'explore'
@@ -1979,7 +1894,6 @@ def get_latest_file(directory):
         return None
 
 
-## get_shape_role
 def get_shape_role(shape_name):
     """Helper function to assign roles based on shape names"""
     name_lower = shape_name.lower()
@@ -1998,7 +1912,6 @@ def get_shape_role(shape_name):
         return "other"
 
 
-## json_to_excel
 def json_to_excel(json_file, output_excel):
     # Load the JSON data
     with open(json_file, "r", encoding="utf-8") as f:
@@ -2064,9 +1977,6 @@ def json_to_excel(json_file, output_excel):
     df.to_excel(output_excel, index=False)
 
 
-## json_to_excel_master
-
-
 def json_to_excel_master(json_file, output_excel):
     """Converts Slide Master JSON to an Excel file."""
 
@@ -2109,10 +2019,6 @@ def json_to_excel_master(json_file, output_excel):
     df.to_excel(output_excel, index=False)
 
 
-## Macro baseline functions
-
-
-# process_vba_files
 def process_vba_files(_control_xlm, _xlsm_path, universal_chart_elements):
     """Main function to process VBA files and create a single XLSM file with multiple modules"""
 
@@ -2205,7 +2111,6 @@ def process_vba_files(_control_xlm, _xlsm_path, universal_chart_elements):
             del excel
 
 
-# replace_values_in_vba_old
 def replace_values_in_vba_old(vba_code, merged_dict):
     """Replace values in VBA code based on the merged dictionary"""
     modified_vba = vba_code
@@ -2255,7 +2160,6 @@ def replace_values_in_vba_old(vba_code, merged_dict):
     return modified_vba
 
 
-# replace_values_in_vba
 def replace_values_in_vba(vba_code, merged_dict):
     """Replace values in VBA code based on the merged dictionary"""
     modified_vba = vba_code
@@ -2311,7 +2215,6 @@ def replace_values_in_vba(vba_code, merged_dict):
     return modified_vba
 
 
-# create_xlsm_with_vba
 def create_xlsm_with_vba(_xlsm_path, module_name, vba_code):
     """Create a new XLSM file with the VBA code in a module"""
     # Create Excel application object
@@ -2339,7 +2242,6 @@ def create_xlsm_with_vba(_xlsm_path, module_name, vba_code):
         excel.Quit()
 
 
-## macro_baseline
 def macro_baseline(_control, _xlsm_path, _visual_library_dir, universal_chart_elements):
     close_powerpoint_excel()
 
@@ -2379,7 +2281,6 @@ def macro_baseline(_control, _xlsm_path, _visual_library_dir, universal_chart_el
     return _control_xlm
 
 
-## mask_ppt_errors
 def mask_ppt_errors(
     df_known_errors,
     _elements_combined,
@@ -2455,7 +2356,6 @@ def mask_ppt_errors(
         )
 
 
-## parse_string
 def parse_string(string):
     # Remove leading and trailing whitespace
     string = string.strip()
@@ -2485,7 +2385,6 @@ def parse_string(string):
     return dictionary
 
 
-## pass_dict_to_transform
 def pass_dict_to_transform(df, parameter_dict):
     """
     Takes a DataFrame and a dictionary of parameters, then passes the relevant
@@ -2537,7 +2436,6 @@ def pass_dict_to_transform(df, parameter_dict):
     )
 
 
-## ppt_learn
 def ppt_learn(
     _master_json_path,
     _output_pptm,
@@ -2630,7 +2528,6 @@ def ppt_learn(
     return _control, _elements_combined
 
 
-## ppt_theme
 def ppt_theme(_colors_file, universal_chart_elements, Theme=None, Override=None):
     df = pd.read_excel(_colors_file, sheet_name="ppt_theme")
     if Theme:
@@ -2671,7 +2568,6 @@ def ppt_theme(_colors_file, universal_chart_elements, Theme=None, Override=None)
     return slide_master_text_elements
 
 
-## python_override
 def python_override(
     _control,
     scan_python_functions_from_file_s,
@@ -2759,7 +2655,6 @@ def python_override(
     return _control
 
 
-## run_dynamic_function
 def run_dynamic_function(function_name, params_dict, df, globals_dict=None):
     """
     Dynamically calls a function by its string name with parameters from a dictionary.
@@ -2806,7 +2701,6 @@ def run_dynamic_function(function_name, params_dict, df, globals_dict=None):
     return func(**kwargs)
 
 
-## transform_data
 def transform_data(df, x=None, y=None, z=None, value=None, y_override=None):
     """
     Transforms the input DataFrame by creating a structured output with 'x', 'y', 'z', and 'value' columns.
@@ -2885,7 +2779,9 @@ def transform_data(df, x=None, y=None, z=None, value=None, y_override=None):
         # Handle y override
         if y_override:
             if not isinstance(y_override, dict):
-                raise ValueError("y_override must be a dictionary mapping original 'y' values to new values.")
+                raise ValueError(
+                    "y_override must be a dictionary mapping original 'y' values to new values."
+                )
             # Replace 'y' column values based on the dictionary
             result_df["y"] = result_df["y"].map(y_override).fillna(result_df["y"])
 
@@ -2915,10 +2811,9 @@ def transform_data(df, x=None, y=None, z=None, value=None, y_override=None):
         return None
 
 
-## transform_data_batch
-def transform_data_batch(df, _colors_file, override=None):
+def transform_data_batch(df, _colors_file, override_xy=None):
     """Transpose data to universal xyzv data structure."""
-    _ct_calc, _ct_default = determine_columns(df, override=override)
+    _ct_calc, _ct_default = determine_columns(df, override=override_xy)
 
     # Treat color file
     df_colors = pd.read_excel(_colors_file, sheet_name="colors")

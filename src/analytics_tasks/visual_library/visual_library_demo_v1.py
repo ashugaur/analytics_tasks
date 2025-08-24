@@ -26,6 +26,8 @@ def create_site(
         ".xlsm",
     ],
     exclude_folders=[],
+    *,
+    compact_site=None
 ):
     """
     Automatically generates an HTML gallery page by scanning a folder structure.
@@ -41,6 +43,13 @@ def create_site(
     Returns:
         str: Path to the generated HTML file
     """
+
+    if compact_site:
+        compact_gallery_item_img_width = ''
+        compact_image_container_height = 'height: 160px;'
+    else:
+        compact_gallery_item_img_width = 'width: 100%;'
+        compact_image_container_height = ''
 
     # Define file type colors and priorities
     file_colors = {
@@ -281,7 +290,6 @@ def create_site(
 
         .gallery-item {{
             position: relative;
-            width: 100%;
             border-radius: 8px;
             overflow: hidden;
             background-color: {page_color};
@@ -297,12 +305,12 @@ def create_site(
         .image-container {{
             position: relative;
             width: 100%;
-            # height: 160px;
+            {compact_image_container_height}
             cursor: pointer;
         }}
 
         .gallery-item img {{
-            width: 100%;
+            {compact_gallery_item_img_width}
             height: 100%;
             object-fit: cover;
             display: block;

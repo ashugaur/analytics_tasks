@@ -1,31 +1,26 @@
-# %% Build explore
-
-
-## Dependencies
 import sys
 import os
 import shutil
 import pandas as pd
-import numpy as np
 import importlib.resources as pkg_resources
 from pathlib import Path
 from datetime import datetime, timezone
 import psutil
 import win32com.client
 import re
-import subprocess as sp
-import glob
-import matplotlib.colors as mcolors
-import ast
-from analytics_tasks.automate_office.build_batch import transform_data
+from analytics_tasks.automate_office.build_batch import (
+    transform_data,
+    determine_columns,
+    clean_merge,
+)
 from analytics_tasks_utils.scanning import scan_dir
+from analytics_tasks_utils.imputing import fill_missing_colors
+from analytics_tasks_utils.os_functions import open_file_folder
 
-## Assign folder or file names
 folder_dt = datetime.now(timezone.utc).strftime("%Y%m%d")
 file_dt = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
 
-## 0. Assign global variables
 def initialize_explore_globals(at_dir):
     """Initialize global variables in the calling module"""
     # Get the calling module's globals
@@ -57,7 +52,6 @@ def initialize_explore_globals(at_dir):
         caller_globals[name] = value
 
 
-## 0. lib_refs_ao_explore
 def lib_refs_ao_explore(at_dir, report_name=None):
     """Assigns working libraries inside visual_library dir."""
     _automate_office_dir = at_dir / "automate_office"
@@ -121,7 +115,6 @@ def lib_refs_ao_explore(at_dir, report_name=None):
     )
 
 
-## 1. load_macro_workbook
 def load_macro_workbook(
     explore_folder,
     _control_file,
@@ -163,17 +156,6 @@ def load_macro_workbook(
         open_file_folder(_latest_file.replace("/", "\\"))
 
 
-## clean_merge
-def clean_merge(df1, df2, df1_join_col="y", how="left"):
-    result = pd.merge(df1, df2, left_on=df1_join_col, right_on="y", how=how)
-    if df1_join_col != "y":
-        if "y_x" in result.columns and "y_y" in result.columns:
-            result = result.drop(columns=["y_y"])
-            result = result.rename(columns={"y_x": "y"})
-    return result
-
-
-## close_powerpoint_excel
 def close_powerpoint_excel():
     """Closes PowerPoint and Excel processes, even if they're stuck in the task manager."""
 
@@ -330,77 +312,6 @@ def copy_input_folder(destination_path):
         raise
 
 
-## determine_columns
-def determine_columns(df, override=None):
-    """
-    Determines the preferred column and always returns 'y' as the second value.
-
-    Args:
-        df: The pandas DataFrame containing the columns 'x' and 'y'.
-        override: An optional string to override the default column selection.
-
-    Returns:
-        A tuple containing the preferred column and 'y'.
-    """
-
-    if override:
-        return override, "y"
-
-    if len(df["y"].unique()) == 1:
-        return "x", "y"
-
-    return "y", "y"
-
-
-## fill_missing_colors
-def fill_missing_colors(df: pd.DataFrame) -> pd.DataFrame:
-    def rgb_to_hex(rgb):
-        """Convert R, G, B values in 0-255 range to hex."""
-        if isinstance(rgb, (list, tuple)) and len(rgb) == 3:
-            rgb_norm = tuple(x / 255 for x in rgb)  # Normalize RGB values to 0-1
-            return mcolors.to_hex(rgb_norm)
-        return None
-
-    def hex_to_rgb(hex_code):
-        """Convert hex color to comma-separated R, G, B string in 0-255 range."""
-        if isinstance(hex_code, str) and hex_code.startswith("#"):
-            return ", ".join(str(int(x * 255)) for x in mcolors.to_rgb(hex_code))
-        return None
-
-    df = df.copy()
-
-    # Replace '.' with NaN using numpy where instead of deprecated replace method
-    df["color_hex"] = np.where(df["color_hex"] == ".", np.nan, df["color_hex"])
-    df["color_rgb"] = np.where(df["color_rgb"] == ".", np.nan, df["color_rgb"])
-
-    # Convert 'color_rgb' string tuples into comma-separated strings
-    df["color_rgb"] = df["color_rgb"].apply(
-        lambda x: ", ".join(map(str, ast.literal_eval(x)))
-        if isinstance(x, str) and x.startswith("(")
-        else x
-    )
-
-    # Explicitly cast 'color_rgb' column to 'object' dtype
-    df["color_rgb"] = df["color_rgb"].astype("object")
-
-    # Fill missing color_hex values using RGB conversion
-    df.loc[df["color_hex"].isna(), "color_hex"] = df.loc[
-        df["color_hex"].isna(), "color_rgb"
-    ].apply(
-        lambda x: rgb_to_hex(tuple(map(int, x.split(", "))))
-        if isinstance(x, str)
-        else None
-    )
-
-    # Fill missing color_rgb values using hex conversion
-    df.loc[df["color_rgb"].isna(), "color_rgb"] = df.loc[
-        df["color_rgb"].isna(), "color_hex"
-    ].apply(hex_to_rgb)
-
-    return df
-
-
-## filter_chart_data_multiline
 def filter_chart_data_multiline(df, column_name):
     """Filters a DataFrame column for dictionary-like values."""
 
@@ -415,7 +326,6 @@ def filter_chart_data_multiline(df, column_name):
     return df[df[column_name].apply(check_braces)]
 
 
-## get_latest_file
 def get_latest_file(directory):
     try:
         # Get a list of files with the prefix 'explore'
@@ -447,10 +357,6 @@ def get_latest_file(directory):
         return None
 
 
-## Macro baseline functions
-
-
-# process_vba_files_self
 def process_vba_files_self(scan, _xlsm_path):
     """Main function to process VBA files and create a single XLSM file with multiple modules"""
 
@@ -551,13 +457,6 @@ def process_vba_files_self(scan, _xlsm_path):
             del excel
 
 
-## open_file_folder
-def open_file_folder(path):
-    path_adj = "explorer " + '"' + str(path) + '"'
-    sp.Popen(path_adj)
-
-
-## parse_string
 def parse_string(string):
     # Remove leading and trailing whitespace
     string = string.strip()
@@ -587,8 +486,7 @@ def parse_string(string):
     return dictionary
 
 
-## pass_dict_to_transform
-def pass_dict_to_transform(df, parameter_dict):
+def pass_dict_to_transform_del(df, parameter_dict):
     """
     Takes a DataFrame and a dictionary of parameters, then passes the relevant
     parameters to the transform_data function.
@@ -627,9 +525,9 @@ def pass_dict_to_transform(df, parameter_dict):
     return transform_data(df, x=x_param, y=y_param, z=z_param, value=value_param)
 
 
-def transform_data_explore(df, _colors_file, override=None):
+def transform_data_explore_old(df, _colors_file, override_xy=None):
     """Transpose data to universal xyzv data structure."""
-    _ct_calc, _ct_default = determine_columns(df, override=override)
+    _ct_calc, _ct_default = determine_columns(df, override=override_xy)
 
     # Treat color file
     df_colors = pd.read_excel(_colors_file, sheet_name="colors")
@@ -639,6 +537,48 @@ def transform_data_explore(df, _colors_file, override=None):
     df_colors = fill_missing_colors(df_colors)
     df_colors.columns = df_colors.columns.str.lower()
     _colors = df_colors.rename(columns={"usage": "y"})[["y", "color_hex", "color_rgb"]]
+
+    df = clean_merge(df, _colors, df1_join_col=_ct_calc).reset_index(drop=True)
+
+    print(
+        "\nReport: Transposed data copied to clipboard, paste it to report*.xlsm file and run relevant macro from visual library."
+    )
+    df.head()
+
+    return df
+
+
+def transform_data_explore(df, _colors_file, override_xy=None, y_override_color=None):
+    """Transpose data to universal xyzv data structure."""
+    _ct_calc, _ct_default = determine_columns(df, override=override_xy)
+
+    # Treat color file
+    df_colors = pd.read_excel(_colors_file, sheet_name="colors")
+    df_colors = df_colors.sort_values(by=["Mode", "Tool", "Usage"]).reset_index(
+        drop=True
+    )
+    df_colors = fill_missing_colors(df_colors)
+    df_colors.columns = df_colors.columns.str.lower()
+    _colors = df_colors.rename(columns={"usage": "y"})[["y", "color_hex", "color_rgb"]]
+
+    # Apply color overrides if provided
+    if y_override_color is not None:
+        for y_value, hex_color in y_override_color.items():
+            # Update color_hex for matching y values
+            mask = _colors["y"] == y_value
+            _colors.loc[mask, "color_hex"] = hex_color
+
+            # Convert hex to RGB if needed (assuming you have a function for this)
+            # If you don't have a hex_to_rgb function, you can add one or remove this line
+            try:
+                # Simple hex to RGB conversion
+                hex_color = hex_color.lstrip("#")
+                rgb = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+                rgb_string = f"{rgb[0]}, {rgb[1]}, {rgb[2]}"
+                _colors.loc[mask, "color_rgb"] = rgb_string
+            except ValueError:
+                # If hex conversion fails, keep original RGB value
+                pass
 
     df = clean_merge(df, _colors, df1_join_col=_ct_calc).reset_index(drop=True)
 

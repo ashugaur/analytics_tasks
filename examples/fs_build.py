@@ -4,7 +4,6 @@
 from pathlib import Path
 from analytics_tasks.utils import fakedatagenerator as fdg
 from analytics_tasks.file_search.build import (
-    log_start,
     lib_refs_fs,
     scan_directories_python,
     scan_dir_powershell,
@@ -15,10 +14,9 @@ from analytics_tasks.file_search.build import (
     apply_filters,
     scan_drives,
     export_index_files,
-    log_end,
     ifp_optimized,
 )
-
+from analytics_tasks_utils.controlling import log_start, log_end
 
 ## Project folder (at_dir: analytics_tasks directoary)
 at_dir = Path("C:/analytics_tasks")

@@ -25,7 +25,8 @@ create_site(
     # modal_background_color = "rgba(212, 188, 150, 0.5)",
     modal_background_color = "(30, 33, 41, 0.5)",
     image_extensions = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp", ".jfif", '.xlsm'],
-    exclude_folders=['____settings']
+    exclude_folders=['____settings'],
+    compact_site=1
 )
 
 ## Open visual library

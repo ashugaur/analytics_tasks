@@ -11,8 +11,6 @@ Drug A	5       	7822
 # %% xy_hr_bar
 
 ## Dependencies
-import matplotlib.pyplot as plt
-import subprocess as sp
 import pandas as pd
 import io
 
@@ -35,7 +33,10 @@ def xyz_hr_bar_k(
     xtick_label_color="black",  # New parameter for y-axis label color (categories)
     k_value_font_size=9,
     k_value_color="#01387B",
-):  # New parameter for k-value (secondary) text color
+):
+    import matplotlib.pyplot as plt
+
+    # New parameter for k-value (secondary) text color
     # Set up the figure and axis
     fig, ax = plt.subplots(figsize=(chart_width, chart_height))
 

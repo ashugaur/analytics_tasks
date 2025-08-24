@@ -45,6 +45,9 @@ src/analytics_tasks/visual_library/gallery/change/xyv_multiline.csv
 src/analytics_tasks/visual_library/gallery/change/xyv_multiline.jpg
 src/analytics_tasks/visual_library/gallery/change/xyv_multiline.png
 src/analytics_tasks/visual_library/gallery/change/xyv_multiline.py
+src/analytics_tasks/visual_library/gallery/compare/bar_stacked_xstr_ypct.bas
+src/analytics_tasks/visual_library/gallery/compare/bar_stacked_xstr_ypct.csv
+src/analytics_tasks/visual_library/gallery/compare/bar_stacked_xstr_ypct.jpg
 src/analytics_tasks/visual_library/gallery/compare/xy_hr_bar.bas
 src/analytics_tasks/visual_library/gallery/compare/xy_hr_bar.csv
 src/analytics_tasks/visual_library/gallery/compare/xy_hr_bar.jpg
