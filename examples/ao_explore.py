@@ -13,12 +13,6 @@ from analytics_tasks.automate_office.build_batch import (
 )
 from analytics_tasks_utils.os_functions import open_file_folder
 
-""" off
-from pathlib import Path
-_startup = Path("C:/my_disk/edupunk/src/functions/startup.py")
-exec(open(_startup).read())
-"""
-
 
 ## Project folder (at_dir: analytics_tasks directoary)
 at_dir = Path("C:/analytics_tasks")
@@ -61,4 +55,6 @@ _colors_file = _vl / "____settings/colors.xlsm"
 
 ## Run
 # open_file_folder(_colors_file)
-transform_data_explore(dft, _colors_file, y_override_color={'New': '#c23899'}).to_clipboard(index=False)
+transform_data_explore(
+    dft, _colors_file, y_override_color={"New": "#c23899"}
+).to_clipboard(index=False)

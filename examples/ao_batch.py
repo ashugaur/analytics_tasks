@@ -21,14 +21,6 @@ from analytics_tasks_utils.formatting import round_columns
 at_dir = Path("C:/analytics_tasks")
 
 
-## Override default
-""" 
-_visual_library_dir = _vl
-_colors_file = _vl / "____settings/colors.xlsm"
-_colors = my_colors(_colors_file)
- """
-
-
 ## Assign file/folder references [Shorter: initialize_batch_globals(at_dir)]
 initialize_batch_globals(at_dir)
 # initialize_batch_globals(at_dir, _colors_file=_colors_file)
@@ -36,8 +28,8 @@ initialize_batch_globals(at_dir)
 
 ## Control file: Input parameters to create .xlsm and .pptm output
 _control_file_worksheet = "calibration"
-# _control = calibration(_control_file)  # Calibration
-_control = pd.read_excel(_control_file, sheet_name=_control_file_worksheet)
+_control = calibration(_control_file)  # Calibration
+# _control = pd.read_excel(_control_file, sheet_name=_control_file_worksheet)
 
 
 ## Theme
@@ -49,7 +41,7 @@ universal_chart_elements = {
 slide_master_text_elements = ppt_theme(_colors_file, universal_chart_elements)
 
 
-## Overrides
+## PPTM overrides
 _control, _template_path = execute_pptx_pipeline(
     _control,
     scan_python_functions_from_file_s,
