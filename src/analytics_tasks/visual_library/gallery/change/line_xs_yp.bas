@@ -1,4 +1,4 @@
-Sub line_multi_xstr_ypct()
+Sub line_xs_yp()
     Dim ws As Worksheet
     Dim chartObj As ChartObject
     Dim chart As chart
@@ -13,7 +13,7 @@ Sub line_multi_xstr_ypct()
     Dim key As String
 
     '#--------------------------------------------------------------------------
-    '#··· Calibration start                                                  ···
+    '# Calibration start
     '#--------------------------------------------------------------------------
 
     ' Chart styling variables
@@ -66,7 +66,7 @@ Sub line_multi_xstr_ypct()
     axis_line_weight = 0.75         ' Thickness of axis lines (default is 0.75)
 
     '#--------------------------------------------------------------------------
-    '#··· Calibration end                                                    ···
+    '# Calibration end
     '#--------------------------------------------------------------------------
 
     ' Create color mapping dictionary
@@ -83,7 +83,7 @@ Sub line_multi_xstr_ypct()
     Next existingChart
 
     ' Find the last row of data
-    lastRow = ws.Cells(Rows.Count, 1).End(xlUp).Row
+    lastRow = ws.Cells(Rows.count, 1).End(xlUp).Row
 
     ' Define X-axis range (Dates in Column A)
     Set xRange = ws.Range("A2:A" & lastRow)
@@ -122,7 +122,7 @@ Sub line_multi_xstr_ypct()
     ' Set chart type
     chart.ChartType = xlLine
     chart.ChartArea.Font.Name = chartFontFamily
-    chart.ChartArea.Font.Color = chartElementsColor
+    chart.ChartArea.Font.color = chartElementsColor
     chart.ChartArea.Border.LineStyle = msoLineNone
 
     ' Set chart title (conditionally)
@@ -131,7 +131,7 @@ Sub line_multi_xstr_ypct()
         chart.chartTitle.Text = chartTitle
         chart.chartTitle.Font.Size = chart_title_font_size
         chart.chartTitle.Font.Name = chartFontFamily
-        chart.chartTitle.Font.Color = chartElementsColor
+        chart.chartTitle.Font.color = chartElementsColor
     Else
         chart.HasTitle = False
     End If
@@ -157,25 +157,25 @@ Sub line_multi_xstr_ypct()
             ' Add the series
             Set series = chart.SeriesCollection.NewSeries
             If key = special_series_name Then
-                series.Format.line.Weight = special_series_weight
+                series.Format.Line.Weight = special_series_weight
             Else
-                series.Format.line.Weight = series_weight
+                series.Format.Line.Weight = series_weight
             End If
             series.Name = key
-            series.XValues = xRange
+            series.xValues = xRange
             series.Values = yRange
 
             If colorMap.Exists(key) Then
-                series.Format.line.ForeColor.RGB = colorMap(key)
+                series.Format.Line.ForeColor.RGB = colorMap(key)
             Else
-                series.Format.line.ForeColor.RGB = RGB(0, 0, 0)
+                series.Format.Line.ForeColor.RGB = RGB(0, 0, 0)
             End If
 
             With series
                 .MarkerStyle = xlMarkerStyleCircle
                 .MarkerSize = marker_size
-                .MarkerForegroundColor = .Format.line.ForeColor.RGB
-                .MarkerBackgroundColor = .Format.line.ForeColor.RGB
+                .MarkerForegroundColor = .Format.Line.ForeColor.RGB
+                .MarkerBackgroundColor = .Format.Line.ForeColor.RGB
             End With
         End If
     Next i
@@ -187,7 +187,7 @@ Sub line_multi_xstr_ypct()
             .AxisTitle.Text = xAxisTitle
             .AxisTitle.Font.Size = xtitle_font_size
             .AxisTitle.Font.Name = chartFontFamily
-            .AxisTitle.Font.Color = chartElementsColor
+            .AxisTitle.Font.color = chartElementsColor
             .AxisTitle.Font.Bold = False
         Else
             .HasTitle = False
@@ -195,8 +195,8 @@ Sub line_multi_xstr_ypct()
 
         .TickLabels.Font.Size = xtick_label_font_size
         .TickLabels.Font.Name = chartFontFamily
-        .TickLabels.Font.Color = chartElementsColor
-        .Border.Color = chartElementsColor
+        .TickLabels.Font.color = chartElementsColor
+        .Border.color = chartElementsColor
         .Border.Weight = axis_line_weight  ' Add this line to control axis line thickness
         '.MajorTickMark = xlOutside
         .MajorTickMark = xlTickMarkNone
@@ -220,7 +220,7 @@ Sub line_multi_xstr_ypct()
             .AxisTitle.Text = yAxisTitle
             .AxisTitle.Font.Size = ytitle_font_size
             .AxisTitle.Font.Name = chartFontFamily
-            .AxisTitle.Font.Color = chartElementsColor
+            .AxisTitle.Font.color = chartElementsColor
             .AxisTitle.Font.Bold = False
         Else
             .HasTitle = False
@@ -228,50 +228,50 @@ Sub line_multi_xstr_ypct()
 
         .TickLabels.Font.Size = ytick_label_font_size
         .TickLabels.Font.Name = chartFontFamily
-        .TickLabels.Font.Color = chartElementsColor
+        .TickLabels.Font.color = chartElementsColor
         .TickLabels.NumberFormat = "0%"
-        .Border.Color = chartElementsColor
+        .Border.color = chartElementsColor
         .Border.Weight = axis_line_weight  ' Add this line to control axis line thickness
         .MajorTickMark = xlOutside
         .MinimumScale = 0
         .MaximumScale = 1
         .MajorUnit = 0.1
         .HasMajorGridlines = True
-        .MajorGridlines.Format.line.ForeColor.RGB = gridlineColor
-        .MajorGridlines.Format.line.Weight = 0.2
-        .MajorGridlines.Format.line.DashStyle = msoLineDash ' Set gridline style to '--'
+        .MajorGridlines.Format.Line.ForeColor.RGB = gridlineColor
+        .MajorGridlines.Format.Line.Weight = 0.2
+        .MajorGridlines.Format.Line.DashStyle = msoLineDash ' Set gridline style to '--'
     End With
 
     ' Add simple value labels to the last point of each series
     For Each series In chart.SeriesCollection
         Dim lastIndex As Integer
-        lastIndex = series.Points.Count
+        lastIndex = series.Points.count
 
         If lastIndex > 0 Then
             series.Points(lastIndex).HasDataLabel = True
-            series.Points(lastIndex).dataLabel.Text = Format(series.Values(lastIndex) * 100, "0") & "%"
-            series.Points(lastIndex).dataLabel.Position = xlLabelPositionAbove
-            series.Points(lastIndex).dataLabel.Font.Bold = True
-            series.Points(lastIndex).dataLabel.Font.Name = chartFontFamily
-            series.Points(lastIndex).dataLabel.Font.Color = series.Format.line.ForeColor.RGB
-            series.Points(lastIndex).dataLabel.Font.Size = series_label_font_size
+            series.Points(lastIndex).DataLabel.Text = Format(series.Values(lastIndex) * 100, "0") & "%"
+            series.Points(lastIndex).DataLabel.Position = xlLabelPositionAbove
+            series.Points(lastIndex).DataLabel.Font.Bold = True
+            series.Points(lastIndex).DataLabel.Font.Name = chartFontFamily
+            series.Points(lastIndex).DataLabel.Font.color = series.Format.Line.ForeColor.RGB
+            series.Points(lastIndex).DataLabel.Font.Size = series_label_font_size
         End If
     Next series
 
     ' Format legend
     chart.HasLegend = True
-    Set legend = chart.legend
+    Set Legend = chart.Legend
 
-    With legend
+    With Legend
         .Position = xlLegendPositionTop
         .Left = 0
         FontSize = legend_font_size ' Your font size
         .Font.Size = FontSize
         .Font.Name = chartFontFamily ' Replace chartFontFamily with your variable or font name
-        .Font.Color = chartElementsColor ' Replace chartElementsColor with your variable or color
+        .Font.color = chartElementsColor ' Replace chartElementsColor with your variable or color
 
         ' Get the number of series (which equals legend entries)
-        seriesCount = chart.SeriesCollection.Count
+        seriesCount = chart.SeriesCollection.count
 
         ' Approximate average width of each legend entry
         ' This is where you'll need to experiment and adjust!
@@ -295,7 +295,7 @@ Sub line_multi_xstr_ypct()
     Set ws = Nothing
     Set chartObj = Nothing
     Set chart = Nothing
-    Set legend = Nothing
+    Set Legend = Nothing
     Set dataRange = Nothing
     Set xRange = Nothing
     Set yRange = Nothing

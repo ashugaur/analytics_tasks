@@ -1,4 +1,4 @@
-Sub xyv_stacked_bar_legend()
+Sub bar_stk_xd_yp_kl()
     Dim ws As Worksheet
     Dim chartObj As ChartObject
     Dim chart As chart
@@ -25,13 +25,13 @@ Sub xyv_stacked_bar_legend()
     chart_height = 100 ' Initial height for legend-only
     
     ' Define the sorting array (can be "" for default sorting)
-    sort_array = Array(" ") ' Modify as needed
+    sort_array = Array("New", "Old", "Mature") ' Modified to match your categories
     
     ' Set active sheet
     Set ws = ActiveSheet
     
     ' Find last row of data
-    lastRow = ws.Cells(Rows.Count, 1).End(xlUp).Row
+    lastRow = ws.Cells(Rows.count, 1).End(xlUp).Row
     
     ' Create dictionaries for unique categories and color mapping
     Set uniqueCategories = CreateObject("Scripting.Dictionary")
@@ -40,7 +40,7 @@ Sub xyv_stacked_bar_legend()
     ' Collect unique categories and their colors
     For i = 2 To lastRow
         Dim categoryKey As String
-        categoryKey = ws.Cells(i, 2).value ' Category in Column B
+        categoryKey = ws.Cells(i, 2).value ' Category in Column B (New, Old, Mature)
         
         If Not uniqueCategories.Exists(categoryKey) Then
             uniqueCategories.Add categoryKey, 0
@@ -50,15 +50,24 @@ Sub xyv_stacked_bar_legend()
             Dim rgbValues As Variant
             Dim rgbColor As Long
             rgbText = ws.Cells(i, 5).value
+            ' Remove any parentheses if present
             rgbText = Replace(rgbText, "(", "")
             rgbText = Replace(rgbText, ")", "")
+            ' Split by comma (your data shows comma-space format)
             rgbValues = Split(rgbText, ", ")
             
             If UBound(rgbValues) >= 2 Then
-                rgbColor = RGB(CInt(rgbValues(0)), CInt(rgbValues(1)), CInt(rgbValues(2)))
+                rgbColor = RGB(CInt(Trim(rgbValues(0))), CInt(Trim(rgbValues(1))), CInt(Trim(rgbValues(2))))
                 colorMap.Add categoryKey, rgbColor
             Else
-                colorMap.Add categoryKey, RGB(0, 0, 0) ' Default to black if invalid
+                ' Try splitting by comma only if comma+space didn't work
+                rgbValues = Split(rgbText, ",")
+                If UBound(rgbValues) >= 2 Then
+                    rgbColor = RGB(CInt(Trim(rgbValues(0))), CInt(Trim(rgbValues(1))), CInt(Trim(rgbValues(2))))
+                    colorMap.Add categoryKey, rgbColor
+                Else
+                    colorMap.Add categoryKey, RGB(0, 0, 0) ' Default to black if invalid
+                End If
             End If
         End If
     Next i
@@ -67,7 +76,7 @@ Sub xyv_stacked_bar_legend()
     Dim sortedCategories As Variant
     If IsMissingOrEmpty(sort_array) Or (IsArray(sort_array) And ArrayLength(sort_array) = 0) Then
         ' Default sorting: ascending order of category names
-        sortedCategories = uniqueCategories.Keys
+        sortedCategories = uniqueCategories.keys
         Dim temp As Variant, k As Long, l As Long
         For k = LBound(sortedCategories) To UBound(sortedCategories) - 1
             For l = k + 1 To UBound(sortedCategories)
@@ -103,8 +112,8 @@ Sub xyv_stacked_bar_legend()
         If uniqueCategories.Exists(currentCategory) Then ' Ensure category exists in data
             With chart.SeriesCollection.NewSeries
                 .Name = currentCategory
-                .Values = Array(0) ' Zero value to avoid visible bars
-                .XValues = Array(" ") ' Space to avoid visible labels
+                .Values = Array(1) ' Small value instead of 0 to avoid issues
+                .xValues = Array("Dummy") ' Dummy category name
                 If colorMap.Exists(currentCategory) Then
                     .Format.Fill.ForeColor.RGB = colorMap(currentCategory) ' Set color for legend key
                     .Format.Fill.Transparency = 0 ' Ensure color is visible in legend
@@ -118,25 +127,40 @@ Sub xyv_stacked_bar_legend()
     ' Configure the chart to show only the legend
     With chart
         .HasTitle = False
+        
+        ' Remove axes if they exist
+        On Error Resume Next ' Ignore errors if axes don't exist
         .Axes(xlCategory).Delete ' Remove X-axis
         .Axes(xlValue).Delete    ' Remove Y-axis
-        .ChartArea.Border.LineStyle = msoLineNone ' No border
+        On Error GoTo 0
+        
+        .ChartArea.Border.LineStyle = xlLineStyleNone ' No border
         
         ' Configure and position the legend
-        With .legend
+        With .Legend
             .Position = xlLegendPositionTop
             .Left = 0
             .Top = 0
             .Font.Name = chartFontFamily
             .Font.Size = legend_font_size
-            .Font.Color = chartElementsColor
-            .Border.LineStyle = xlNone ' No border around legend
+            .Font.color = chartElementsColor
+            .Border.LineStyle = xlLineStyleNone ' No border around legend
             .IncludeInLayout = True ' Ensure legend is part of chart layout
         End With
         
+        ' Make plot area invisible
+        With .PlotArea
+            .Format.Fill.Visible = msoFalse
+            .Format.Line.Visible = msoFalse
+            .Left = 0
+            .Top = 0
+            .Width = 0
+            .Height = 0
+        End With
+        
         ' Resize chart to fit legend only
-        chartObj.Width = chart.legend.Width + 10
-        chartObj.Height = chart.legend.Height + 10
+        chartObj.Width = .Legend.Width + 20
+        chartObj.Height = .Legend.Height + 20
     End With
     
     ' Clean up
@@ -145,6 +169,8 @@ Sub xyv_stacked_bar_legend()
     Set chart = Nothing
     Set uniqueCategories = Nothing
     Set colorMap = Nothing
+    
+    'MsgBox "Legend created successfully!", vbInformation
 End Sub
 
 ' Helper functions from original code

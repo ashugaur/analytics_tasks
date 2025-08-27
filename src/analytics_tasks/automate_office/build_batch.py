@@ -19,6 +19,7 @@ import sys
 from analytics_tasks_utils.controlling import log_start, log_end
 from analytics_tasks_utils.scanning import scan_dir
 from analytics_tasks_utils.imputing import fill_missing_colors
+import matplotlib.pyplot as plt
 
 folder_dt = datetime.now(timezone.utc).strftime("%Y%m%d")
 file_dt = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -1735,6 +1736,8 @@ def scan_python_functions_from_file_s(
 ):
     """function to load functions from python files in folders to memory"""
 
+    import matplotlib.pyplot as plt
+    
     global scan
 
     _relevant_file_type = [".py"]
@@ -2097,7 +2100,7 @@ def process_vba_files(_control_xlm, _xlsm_path, universal_chart_elements):
                 vb_comp.Name = unique_module_name
                 vb_comp.CodeModule.AddFromString(modified_vba)
             except Exception as e:
-                print(f"Error adding module to workbook: {str(e)}")
+                print(f"Error adding module {unique_module_name} to workbook: {str(e)}")
                 continue
 
         # Save the workbook as XLSM after all modules have been added
@@ -2869,7 +2872,7 @@ def transform_data_batch_v1(df, _colors_file, y_override_col=None):
 
     df = clean_merge(df, _colors, df1_join_col=_ct_calc).reset_index(drop=True)
 
-    print("\nReport: Data transposed")
+    print("Report: Data transposed")
     df.head()
 
     return df
@@ -2898,7 +2901,7 @@ def transform_data_batch(df, _colors, y_override_col=None, y_override_color=None
                 # If hex conversion fails, keep original RGB value
                 pass
 
-    df = clean_merge(df, _colors, df1_join_col=_ct_default, how="left").reset_index(
+    df = clean_merge(df, _colors, df1_join_col=_ct_calc, how="left").reset_index(
         drop=True
     )
 
@@ -2907,7 +2910,8 @@ def transform_data_batch(df, _colors, y_override_col=None, y_override_color=None
     else:
         print(f"Reference: Auto color column is {_ct_calc}.")
 
-    print("\nReport: Data transposed")
+    print("Report: Data transposed")
     # df.head()
 
     return df
+

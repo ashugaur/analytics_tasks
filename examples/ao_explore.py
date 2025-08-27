@@ -54,6 +54,7 @@ dft = transform_data(df, x=["cat"], y=["source"], value='nbr_of_patients')
 dft = transform_data(df, x=["days_on_therapy"], y=["brand"], value=["value"])
 dft.head()
 
+
 ## Override default
 _colors_file = _vl / "____settings/colors.xlsm"
 

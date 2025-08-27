@@ -11,7 +11,7 @@ from analytics_tasks.automate_office.build_batch import (
     initialize_batch_globals,
     execute_pptx_pipeline,
     draw_charts,
-    my_colors
+    my_colors,
 )
 from analytics_tasks_utils.os_functions import open_file_folder
 from analytics_tasks_utils.formatting import round_columns
@@ -34,17 +34,10 @@ initialize_batch_globals(at_dir)
 # initialize_batch_globals(at_dir, _colors_file=_colors_file)
 
 
-## Browse or edit input parameters
-"""
-open_file_folder(_control_file)
-open_file_folder(_colors_file)
-"""
-
-
 ## Control file: Input parameters to create .xlsm and .pptm output
 _control_file_worksheet = "calibration"
-_control = calibration(_control_file)  # Calibration
-# _control = pd.read_excel(_control_file, sheet_name=_control_file_worksheet)
+# _control = calibration(_control_file)  # Calibration
+_control = pd.read_excel(_control_file, sheet_name=_control_file_worksheet)
 
 
 ## Theme
@@ -109,7 +102,13 @@ _control_xlm, success, df_known_errors = draw_charts(
 )
 
 
-## Open processed file
+## Browse
+"""
+open_file_folder(_control_file)
+open_file_folder(_learn_xl_output)
+open_file_folder(_colors_file)
+open_file_folder(_xlsm_path)
+"""
 open_file_folder(_output_pptm)
 
 

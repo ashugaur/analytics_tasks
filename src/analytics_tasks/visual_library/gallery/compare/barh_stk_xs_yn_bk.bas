@@ -1,4 +1,4 @@
-Sub bar_stackedh_xstr_ynum_bspk()
+Sub barh_stk_xs_yn_bk()
     Dim ws As Worksheet
     Dim chartObj As ChartObject
     Dim chart As chart
@@ -38,7 +38,7 @@ Sub bar_stackedh_xstr_ynum_bspk()
     series_label_font_size = 8 ' Default
     legend_font_size = 9 ' Default
     chart_width = 260
-    chart_height = 30
+    chart_height = 35
     
     ' Set the chart title with dynamic period
     chartTitle = "bar_horizontal_xstr_ynum_bespoke : " & studyPeriod & " months"

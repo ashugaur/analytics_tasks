@@ -1,4 +1,4 @@
-# %% Simulate simple data
+# %% Simulate data for sankey diagram
 
 import pandas as pd
 import random
@@ -48,7 +48,7 @@ df_extended = create_fill_dataframe(strength, stages_extended, num_rows=10)
 print(df_extended)
 
 
-# %% Simulate complex data
+# %% Simulate complex data for sankey diagram
 
 import pandas as pd
 import random

@@ -1,17 +1,16 @@
-Sub bar_stacked_xdt_ypct_k()
+Sub bar_stk_xs_yp()
     Dim ws As Worksheet
     Dim chartObj As ChartObject
     Dim chart As chart
     Dim lastRow As Long
     Dim i As Long, j As Long
-    Dim uniqueMonths As Object
     Dim uniqueCategories As Object
-    Dim monthCategories As Object
+    Dim uniqueYValues As Object
+    Dim categoryYValues As Object
     Dim outputCol As Long
     Dim outputRow As Long
     Dim colorMap As Object
     Dim totalValue As Double
-    Dim percentageStartRow As Long
 
     Dim chartFontFamily As String
     Dim chartElementsColor As Long
@@ -51,13 +50,13 @@ Sub bar_stacked_xdt_ypct_k()
     ytick_label_font_size = 10
     series_label_font_size = 9
     legend_font_size = 10
-    legend_visible = False
+    legend_visible = True
     y_axis_unit = 20000
-    total_format = "[>=1000]#,##0,K;[>=1]0.0,K"
+    total_format = "0%" ' Changed from #K format to percentage format
     bar_width = 100
     label_format = "0%" '"0.0%";
-    chart_width = 760
-    chart_height = 280
+    chart_width = 400
+    chart_height = 300
     hideLabel = 0.01 ' Hide labels below certain %
 
     chartTitle = " "
@@ -77,21 +76,21 @@ Sub bar_stacked_xdt_ypct_k()
     ' Find last row of data
     lastRow = ws.Cells(Rows.Count, 1).End(xlUp).Row
 
-    ' Create dictionaries for unique months, categories, and color mapping
-    Set uniqueMonths = CreateObject("Scripting.Dictionary")
+    ' Create dictionaries for unique categories, Y values, and color mapping
     Set uniqueCategories = CreateObject("Scripting.Dictionary")
+    Set uniqueYValues = CreateObject("Scripting.Dictionary")
     Set colorMap = CreateObject("Scripting.Dictionary")
-    Set monthCategories = CreateObject("Scripting.Dictionary")
+    Set categoryYValues = CreateObject("Scripting.Dictionary")
 
-    ' Collect unique months and categories, and store color mappings
+    ' Collect unique categories and Y values, and store color mappings
     For i = 2 To lastRow
-        Dim monthKey As Variant
         Dim categoryKey As Variant
-        monthKey = Format(CDate(ws.Cells(i, 1).value), "mmm-yy")
-        categoryKey = ws.Cells(i, 2).value ' Category in Column B
+        Dim yValueKey As Variant
+        categoryKey = ws.Cells(i, 1).value ' X category in Column A
+        yValueKey = ws.Cells(i, 2).value   ' Y category in Column B
 
-        If Not uniqueMonths.Exists(monthKey) Then uniqueMonths.Add monthKey, 0
         If Not uniqueCategories.Exists(categoryKey) Then uniqueCategories.Add categoryKey, 0
+        If Not uniqueYValues.Exists(yValueKey) Then uniqueYValues.Add yValueKey, 0
 
         Dim rgbText As String
         Dim rgbValues As Variant
@@ -103,17 +102,17 @@ Sub bar_stacked_xdt_ypct_k()
 
         If UBound(rgbValues) >= 2 Then
             rgbColor = RGB(CInt(rgbValues(0)), CInt(rgbValues(1)), CInt(rgbValues(2)))
-            If Not colorMap.Exists(categoryKey) Then colorMap.Add categoryKey, rgbColor
+            If Not colorMap.Exists(yValueKey) Then colorMap.Add yValueKey, rgbColor
         Else
-            If Not colorMap.Exists(categoryKey) Then colorMap.Add categoryKey, RGB(0, 0, 0)
+            If Not colorMap.Exists(yValueKey) Then colorMap.Add yValueKey, RGB(0, 0, 0)
         End If
 
-        Dim monthCategoryKey As String
-        monthCategoryKey = monthKey & "|" & categoryKey
-        If Not monthCategories.Exists(monthCategoryKey) Then
-            monthCategories.Add monthCategoryKey, ws.Cells(i, 3).value
+        Dim categoryYKey As String
+        categoryYKey = categoryKey & "|" & yValueKey
+        If Not categoryYValues.Exists(categoryYKey) Then
+            categoryYValues.Add categoryYKey, ws.Cells(i, 3).value
         Else
-            monthCategories(monthCategoryKey) = monthCategories(monthCategoryKey) + ws.Cells(i, 3).value
+            categoryYValues(categoryYKey) = categoryYValues(categoryYKey) + ws.Cells(i, 3).value
         End If
     Next i
 
@@ -121,103 +120,86 @@ Sub bar_stacked_xdt_ypct_k()
     outputCol = 15 ' Start at column O
     outputRow = 1  ' Header row for categories
 
-    ' Write month headers (dates) starting from column P (outputCol + 1)
-    ws.Cells(outputRow, outputCol).value = "Date"
+    ' Write category headers starting from column P (outputCol + 1)
+    ws.Cells(outputRow, outputCol).value = "Category"
     j = 0
-    For Each monthKey In uniqueMonths.Keys
+    For Each categoryKey In uniqueCategories.Keys
         j = j + 1
-        Dim properDate As Date
-        properDate = DateSerial(20 & Right(monthKey, 2), month(DateValue("01-" & Left(monthKey, 3) & "-2022")), 1)
-        ws.Cells(outputRow, outputCol + j).value = properDate
-        ws.Cells(outputRow, outputCol + j).NumberFormat = "mmm-yy"
-    Next monthKey
+        ws.Cells(outputRow, outputCol + j).value = categoryKey
+    Next categoryKey
 
-    ' Sort categories based on sort_array or ascending order
-    Dim sortedCategories As Variant
-    If IsMissingOrEmpty(sort_array) Or (IsArray(sort_array) And ArrayLength(sort_array) = 0) Then
-        ' Default sorting: ascending order of category names
-        sortedCategories = uniqueCategories.Keys
+    ' Sort Y values based on sort_array or ascending order
+    Dim sortedYValues As Variant
+    If IsMissingOrEmpty(sort_array) Or (IsArray(sort_array) And ArrayLength(sort_array) = 0) Or (IsArray(sort_array) And sort_array(0) = " ") Then
+        ' Default sorting: ascending order of Y value names
+        sortedYValues = uniqueYValues.Keys
         Dim temp As Variant, k As Long, l As Long
-        For k = LBound(sortedCategories) To UBound(sortedCategories) - 1
-            For l = k + 1 To UBound(sortedCategories)
-                If sortedCategories(k) > sortedCategories(l) Then
-                    temp = sortedCategories(k)
-                    sortedCategories(k) = sortedCategories(l)
-                    sortedCategories(l) = temp
+        For k = LBound(sortedYValues) To UBound(sortedYValues) - 1
+            For l = k + 1 To UBound(sortedYValues)
+                If sortedYValues(k) > sortedYValues(l) Then
+                    temp = sortedYValues(k)
+                    sortedYValues(k) = sortedYValues(l)
+                    sortedYValues(l) = temp
                 End If
             Next l
         Next k
     Else
-        ' Custom sorting based on sort_array
-        sortedCategories = sort_array
+        ' Custom sorting based on sort_array - filter out empty entries
+        Dim filteredArray() As Variant
+        Dim arrayIndex As Long
+        arrayIndex = 0
+
+        For k = LBound(sort_array) To UBound(sort_array)
+            If Trim(sort_array(k)) <> "" And uniqueYValues.Exists(sort_array(k)) Then
+                ReDim Preserve filteredArray(arrayIndex)
+                filteredArray(arrayIndex) = sort_array(k)
+                arrayIndex = arrayIndex + 1
+            End If
+        Next k
+
+        If arrayIndex > 0 Then
+            sortedYValues = filteredArray
+        Else
+            ' Fallback to default sorting if no valid entries found
+            sortedYValues = uniqueYValues.Keys
+        End If
     End If
 
-    ' Write category headers and values based on sorted order
+    ' Write Y value headers and values based on sorted order
     outputRow = 2
-    For Each categoryKey In sortedCategories
-        If uniqueCategories.Exists(categoryKey) Then ' Ensure category exists in data
-            ws.Cells(outputRow, outputCol).value = categoryKey
+    For Each yValueKey In sortedYValues
+        If uniqueYValues.Exists(yValueKey) Then ' Ensure Y value exists in data
+            ws.Cells(outputRow, outputCol).value = yValueKey
             j = 0
-            For Each monthKey In uniqueMonths.Keys
+            For Each categoryKey In uniqueCategories.Keys
                 j = j + 1
                 Dim fullKey As String
-                fullKey = monthKey & "|" & categoryKey
-                If monthCategories.Exists(fullKey) Then
-                    ws.Cells(outputRow, outputCol + j).value = monthCategories(fullKey)
+                fullKey = categoryKey & "|" & yValueKey
+                If categoryYValues.Exists(fullKey) Then
+                    ws.Cells(outputRow, outputCol + j).value = categoryYValues(fullKey)
                 Else
                     ws.Cells(outputRow, outputCol + j).value = 0
                 End If
-            Next monthKey
+            Next categoryKey
             outputRow = outputRow + 1
         End If
-    Next categoryKey
+    Next yValueKey
 
-    ' Add a row for totals below the categories
+    ' Add a row for totals below the categories (sum of percentages)
     ws.Cells(outputRow, outputCol).value = "Total"
-    For j = 1 To uniqueMonths.Count
+    For j = 1 To uniqueCategories.Count
         totalValue = 0
         For i = 2 To outputRow - 1
             totalValue = totalValue + ws.Cells(i, outputCol + j).value
         Next i
         ws.Cells(outputRow, outputCol + j).value = totalValue
+        ' Format the total cell as percentage
+        ws.Cells(outputRow, outputCol + j).NumberFormat = "0.0%"
     Next j
 
     ' Store the total row number for reference
     Dim totalRow As Long
     totalRow = outputRow
-
-    ' Calculate percentage values (5 rows below the totals)
-    percentageStartRow = totalRow + 5
-
-    ' Add header row for percentages
-    ws.Cells(percentageStartRow - 1, outputCol).value = "Percentage Values"
-
-    ' Manually transfer the column headers
-    Dim monthCount As Long
-    monthCount = j ' j was last used to count through uniqueMonths in the earlier loop
-
-    ' Copy headers without using the Copy method
-    For colIdx = 0 To monthCount
-        ws.Cells(percentageStartRow, outputCol + colIdx).value = ws.Cells(1, outputCol + colIdx).value
-        ws.Cells(percentageStartRow, outputCol + colIdx).NumberFormat = ws.Cells(1, outputCol + colIdx).NumberFormat
-    Next colIdx
-
-    ' Calculate percentages for each category
-    For i = 2 To totalRow - 1
-        ws.Cells(percentageStartRow + i - 1, outputCol).value = ws.Cells(i, outputCol).value
-
-        For j = 1 To uniqueMonths.Count
-            ' Only calculate percentage if total is not zero
-            If ws.Cells(totalRow, outputCol + j).value <> 0 Then
-                ws.Cells(percentageStartRow + i - 1, outputCol + j).value = _
-                    ws.Cells(i, outputCol + j).value / ws.Cells(totalRow, outputCol + j).value
-            Else
-                ws.Cells(percentageStartRow + i - 1, outputCol + j).value = 0
-            End If
-            ' Format as percentage
-            ws.Cells(percentageStartRow + i - 1, outputCol + j).NumberFormat = "0.0%"
-        Next j
-    Next i
 
     ' Remove any existing charts
     For Each chartObj In ws.ChartObjects
@@ -230,7 +212,7 @@ Sub bar_stacked_xdt_ypct_k()
 
     chart.ChartType = xlColumnStacked
     chart.ChartArea.Font.Name = chartFontFamily
-    chart.ChartArea.Font.Color = chartElementsColor
+    chart.ChartArea.Font.color = chartElementsColor
     chart.ChartArea.Border.LineStyle = msoLineNone
 
     ' Adjust the width of the bars
@@ -243,7 +225,7 @@ Sub bar_stacked_xdt_ypct_k()
         chart.chartTitle.Text = chartTitle
         chart.chartTitle.Font.Size = chart_title_font_size
         chart.chartTitle.Font.Name = chartFontFamily
-        chart.chartTitle.Font.Color = chartElementsColor
+        chart.chartTitle.Font.color = chartElementsColor
     Else
         chart.HasTitle = False
     End If
@@ -254,11 +236,10 @@ Sub bar_stacked_xdt_ypct_k()
         .PlotArea.Top = .PlotArea.Top + 20 ' Adjust 20 as needed
     End With
 
-    ' Set up the source data using the PERCENTAGE values
-    Dim percentDataRange As Range
-    Set percentDataRange = ws.Range(ws.Cells(percentageStartRow + 1, outputCol), _
-                                   ws.Cells(percentageStartRow + totalRow - 2, outputCol + uniqueMonths.Count))
-    chart.SetSourceData Source:=percentDataRange
+    ' Set up the source data using the original percentage values
+    Dim dataRange As Range
+    Set dataRange = ws.Range(ws.Cells(2, outputCol), ws.Cells(totalRow - 1, outputCol + uniqueCategories.Count))
+    chart.SetSourceData Source:=dataRange
 
     With chart.Axes(xlCategory)
         ' Check if X-axis title is empty before setting it
@@ -274,9 +255,10 @@ Sub bar_stacked_xdt_ypct_k()
         .TickLabels.Font.Name = chartFontFamily
         .TickLabelPosition = xlTickLabelPositionLow
         .MajorTickMark = xlTickMarkNone
-        .TickLabels.NumberFormat = "mmm-yy"
+        ' Remove date formatting for categorical data
+        .TickLabels.NumberFormat = "General"
         Dim categoryLabels As Range
-        Set categoryLabels = ws.Range(ws.Cells(1, outputCol + 1), ws.Cells(1, outputCol + uniqueMonths.Count))
+        Set categoryLabels = ws.Range(ws.Cells(1, outputCol + 1), ws.Cells(1, outputCol + uniqueCategories.Count))
         chart.SeriesCollection(1).XValues = categoryLabels
     End With
 
@@ -296,7 +278,7 @@ Sub bar_stacked_xdt_ypct_k()
         .MaximumScale = 1
         .MajorUnit = 0.2 ' 20% intervals
         .HasMajorGridlines = False
-        .MajorGridlines.Format.line.ForeColor.RGB = gridlineColor
+        .MajorGridlines.Format.Line.ForeColor.RGB = gridlineColor
         .MajorTickMark = xlTickMarkNone
         .Border.LineStyle = xlNone
         .TickLabels.NumberFormat = "0%"
@@ -304,7 +286,7 @@ Sub bar_stacked_xdt_ypct_k()
         .Border.LineStyle = xlNone ' Hides the axis line
     End With
 
-    ' Apply colors and data labels to series (percentage format)
+    ' Apply colors and data labels to series
     Dim seriesIndex As Long
     For seriesIndex = 1 To chart.SeriesCollection.Count
         Dim seriesName As String
@@ -322,12 +304,12 @@ Sub bar_stacked_xdt_ypct_k()
             For pointIdx = 1 To .Points.Count
                 ' Get the value of this specific data point
                 Dim pointValue As Double
-                ' Calculate the correct row and column from percentageStartRow area
+                ' Calculate the correct row and column from the data area
                 Dim dataRow As Long, dataCol As Long
-                dataRow = percentageStartRow + seriesIndex
+                dataRow = 1 + seriesIndex
                 dataCol = outputCol + pointIdx
 
-                ' Make sure we're reading from the right place in the percentage table
+                ' Read the value from the data table
                 pointValue = ws.Cells(dataRow, dataCol).value
 
                 ' Only show labels for points above the threshold
@@ -340,7 +322,7 @@ Sub bar_stacked_xdt_ypct_k()
                         .Position = xlLabelPositionCenter
                         .Font.Name = chartFontFamily
                         .Font.Size = series_label_font_size
-                        .Font.Color = RGB(255, 255, 255)
+                        .Font.color = RGB(255, 255, 255)
                         .NumberFormat = label_format
                     End With
                 End If
@@ -350,22 +332,22 @@ Sub bar_stacked_xdt_ypct_k()
 
     On Error Resume Next
     For seriesIndex = 1 To chart.SeriesCollection.Count - 1
-        Dim categoryName As String
-        categoryName = ws.Cells(percentageStartRow + seriesIndex, outputCol).value
-        If Len(Trim(categoryName)) > 0 Then
-            chart.SeriesCollection(seriesIndex).Name = categoryName
+        Dim yValueName As String
+        yValueName = ws.Cells(1 + seriesIndex, outputCol).value
+        If Len(Trim(yValueName)) > 0 Then
+            chart.SeriesCollection(seriesIndex).Name = yValueName
         End If
     Next seriesIndex
     On Error GoTo 0
 
-    ' Add total values as a line series (absolute numbers)
+    ' Add total values as a line series (percentage totals)
     Dim totalSeries As series
     Set totalSeries = chart.SeriesCollection.NewSeries
     With totalSeries
         .Name = "Total"
-        .Values = ws.Range(ws.Cells(totalRow, outputCol + 1), ws.Cells(totalRow, outputCol + uniqueMonths.Count))
+        .Values = ws.Range(ws.Cells(totalRow, outputCol + 1), ws.Cells(totalRow, outputCol + uniqueCategories.Count))
         .ChartType = xlLine
-        .Format.line.Visible = msoFalse  ' Make the line invisible
+        .Format.Line.Visible = msoFalse  ' Make the line invisible
         .MarkerStyle = xlMarkerStyleNone ' Remove markers
         .HasDataLabels = True
         With .DataLabels
@@ -373,10 +355,9 @@ Sub bar_stacked_xdt_ypct_k()
             .Position = xlLabelPositionAbove
             .Font.Name = chartFontFamily
             .Font.Size = series_label_font_size
-            .Font.Bold = False            ' Make labels bold to stand out
-            '.Font.Color = RGB(0, 0, 0)
-            .Font.Color = chartElementsColor
-            .NumberFormat = total_format      ' Format as number with thousand separators
+            .Font.Bold = False
+            .Font.color = chartElementsColor
+            .NumberFormat = total_format ' Format as percentage
         End With
     End With
 
@@ -387,15 +368,13 @@ Sub bar_stacked_xdt_ypct_k()
         .Border.LineStyle = xlLineNone ' Hide the axis line
         .MajorTickMark = xlTickMarkNone ' Hide major tick marks
         .MinorTickMark = xlTickMarkNone ' Hide minor tick marks
-        .TickLabels.Font.Color = RGB(255, 255, 255) ' Hide tick labels by making them white
-        '.TickLabels.Font.Size = 1
+        .TickLabels.Font.color = RGB(255, 255, 255) ' Hide tick labels by making them white
         .TickLabels.Font.Bold = False
         .TickLabelPosition = xlNone
         .Border.LineStyle = xlNone
     End With
 
     ' Hide "Total" from the legend by setting its name to an empty string
-    'Dim  l?l? As Long
     For seriesIndex = 1 To chart.SeriesCollection.Count
         If chart.SeriesCollection(seriesIndex).Name = "Total" Then
             chart.SeriesCollection(seriesIndex).Name = "" ' Clear the series name
@@ -406,12 +385,11 @@ Sub bar_stacked_xdt_ypct_k()
     ' Manually adjust the position of the data labels to ensure they are aligned horizontally
     Dim maxTotalValue As Double
     maxTotalValue = 0
-    For j = 1 To monthCount
+    For j = 1 To uniqueCategories.Count
         If ws.Cells(totalRow, outputCol + j).value > maxTotalValue Then
             maxTotalValue = ws.Cells(totalRow, outputCol + j).value
         End If
     Next j
-
 
     ' Calculate a fixed vertical position for all data labels
     Dim fixedLabelTop As Double
@@ -429,19 +407,19 @@ Sub bar_stacked_xdt_ypct_k()
     With chart
         .HasLegend = legend_visible ' Use the variable to toggle legend
         If .HasLegend Then ' Only configure legend properties if it's visible
-            With .legend
+            With .Legend
                 .Position = xlLegendPositionTop
                 .Left = 0
                 .Top = 0 ' Adjust this value to position the legend vertically
                 .Font.Name = chartFontFamily
                 .Font.Size = legend_font_size
-                .Font.Color = chartElementsColor
+                .Font.color = chartElementsColor
             End With
 
             ' Increase space between the legend and the chart dynamically
             Dim legendHeight As Double
-            legendHeight = .legend.Height ' Get the height of the legend
-            .PlotArea.Top = .legend.Top + legendHeight + 13 ' Add extra space (13 points)
+            legendHeight = .Legend.Height ' Get the height of the legend
+            .PlotArea.Top = .Legend.Top + legendHeight + 13 ' Add extra space (13 points)
         Else
             ' If legend is off, adjust PlotArea.Top to avoid unnecessary spacing
             .PlotArea.Top = 20 ' Default spacing when no legend is present
@@ -451,10 +429,10 @@ Sub bar_stacked_xdt_ypct_k()
     Set ws = Nothing
     Set chartObj = Nothing
     Set chart = Nothing
-    Set uniqueMonths = Nothing
     Set uniqueCategories = Nothing
+    Set uniqueYValues = Nothing
     Set colorMap = Nothing
-    Set monthCategories = Nothing
+    Set categoryYValues = Nothing
 End Sub
 
 Private Function IsMissingOrEmpty(v As Variant) As Boolean
