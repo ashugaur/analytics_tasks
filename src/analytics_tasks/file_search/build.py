@@ -31,6 +31,7 @@ from email.utils import parseaddr
 from datetime import datetime, timezone
 import concurrent.futures
 from analytics_tasks_utils.controlling import timer_start, timer_end
+from analytics_tasks_utils.text_analysis import remove_emojis
 
 import os
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
@@ -797,22 +798,6 @@ def split_text(df, max_length=256):
 
     new_df = pd.DataFrame(new_rows, columns=df.columns)
     return new_df
-
-
-def remove_emojis(string):
-    emoji_pattern = re.compile(
-        "["
-        "\U0001f600-\U0001f64f"  # emoticons
-        "\U0001f300-\U0001f5ff"  # symbols & pictographs
-        "\U0001f680-\U0001f6ff"  # transport & map symbols
-        "\U0001f1e0-\U0001f1ff"  # flags (iOS)
-        "\U00002702-\U000027b0"
-        "\U000024c2-\U0001f251"
-        "]+",
-        flags=re.UNICODE,
-    )
-
-    return emoji_pattern.sub(r"", string)
 
 
 def unzip_file(zip_path, output_folder):
